@@ -29,6 +29,9 @@ fun WeatherSimulatorApp() {
     var temperature by remember { mutableStateOf(20f) }
     var humidity by remember { mutableStateOf(50f) }
     var pressure by remember { mutableStateOf(1013f) }
+    var wind by remember { mutableStateOf(10f) }
+    var cloudCoverage by remember { mutableStateOf(0f) }
+
 
     Scaffold(
         topBar = {
@@ -70,6 +73,106 @@ fun WeatherSimulatorApp() {
                 onValueChange = { pressure = it },
                 valueRange = 950f..1050f,
                 steps = 9
+            )
+
+            Text(text = "Viteza vântului: ${wind.toInt()} km/h", fontSize = 18.sp)
+            Slider(
+                value = wind,
+                onValueChange = { wind = it },
+                valueRange = 0f..120f,
+                steps = 11
+            )
+
+
+            Text(text = "Acoperire nori: ${cloudCoverage.toInt()}%", fontSize = 18.sp)
+            Slider(
+                value = cloudCoverage,
+                onValueChange = { cloudCoverage = it },
+                valueRange = 0f..100f,
+                steps = 4 // valorile: 0, 20, 40, 60, 80, 100
+            )
+
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // —— Card de simulare vizuală ——
+            WeatherDisplayCard(
+                temperature = temperature,
+                humidity = humidity,
+                pressure = pressure,
+                wind = wind,
+                cloudCoverage = cloudCoverage
+            )
+        }
+    }
+}
+
+// —— Composable pentru Card-ul meteo —— //
+@Composable
+fun WeatherDisplayCard(
+    temperature: Float,
+    humidity: Float,
+    pressure: Float,
+    wind: Float,
+    cloudCoverage: Float
+) {
+    val (icon, description) = remember(temperature, humidity, pressure, wind, cloudCoverage) {
+        when {
+            // 🌫️ Ceață
+            humidity > 95 && pressure < 1010 && temperature in 0f..15f ->
+                "🌫️" to "Ceață"
+
+            // 🌨️ Ninsoare
+            temperature < 0 && humidity > 70 ->
+                "🌨️" to "Ninsoare"
+
+            // ⛈️ Furtună
+            humidity > 90 && wind >= 50 && pressure < 1000 ->
+                "⛈️" to "Furtună"
+
+            // 🌦️ Furtună cu soare
+            humidity > 70 && wind >= 40 && pressure in 995f..1005f && temperature > 20 && cloudCoverage in 20f .. 60f ->
+                "🌦️" to "Furtună cu soare"
+
+            // 🌧️ Ploaie
+            humidity > 85 && pressure < 1005 && cloudCoverage >= 80 ->
+                "🌧️" to "Ploaie"
+
+            // ☀️ / ☁️ bazat pe acoperirea norilor
+            cloudCoverage == 0f -> "☀️" to "Insorit"
+            cloudCoverage == 20f -> "🌤️" to "Predominant insorit"
+            cloudCoverage == 40f -> "⛅" to "Parțial insorit"
+            cloudCoverage == 60f -> "🌥️" to "Nori și soare"
+            cloudCoverage == 80f -> "🌥️" to "Predominant noros"
+            cloudCoverage == 100f -> "☁️" to "Noros"
+
+            // fallback
+            else -> "🌦️" to "Condiții variabile"
+        }
+    }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(180.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(text = icon, fontSize = 56.sp)
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = description,
+                fontSize = 22.sp,
+                color = MaterialTheme.colorScheme.onSecondaryContainer
             )
         }
     }

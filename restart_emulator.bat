@@ -10,7 +10,8 @@ adb kill-server
 adb start-server
 
 echo ====== Starting Emulator ======
+set ANDROID_AVD_HOME=D:\AndroidAVD
 cd /d "D:\AndroidStudioApp\Sdk\emulator"
-emulator.exe -avd Medium_Phone_API_34 -wipe-data
+emulator.exe -avd Medium_Phone -wipe-data
 
 pause
