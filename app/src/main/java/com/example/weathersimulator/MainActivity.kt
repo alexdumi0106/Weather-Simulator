@@ -12,6 +12,28 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+import androidx.compose.ui.graphics.Color
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.foundation.background
+
+
+fun getBackgroundColor(cloudCoverage: Float): Color {
+    return when {
+        cloudCoverage <= 40f ->
+            Color(0xFF1565C0)
+
+        cloudCoverage in 41f..80f ->
+            Color(0xFF90CAF9)
+
+        cloudCoverage > 80f ->
+            Color(0xFFCFD8DC)
+
+        else -> Color(0xFF64B5F6)
+    }
+}
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -32,6 +54,10 @@ fun WeatherSimulatorApp() {
     var wind by remember { mutableStateOf(10f) }
     var cloudCoverage by remember { mutableStateOf(0f) }
 
+    val backgroundColor by animateColorAsState(
+        targetValue = getBackgroundColor(cloudCoverage),
+        animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing)
+    )
 
     Scaffold(
         topBar = {
@@ -39,11 +65,15 @@ fun WeatherSimulatorApp() {
                 title = { Text(text = "Weather Simulator AI") },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors()
             )
-        }
+        },
+        modifier = Modifier
+            .fillMaxSize()
+            .background(backgroundColor)
     ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .background(backgroundColor)
                 .padding(innerPadding)
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp),
