@@ -1,46 +1,87 @@
 package com.example.weathersimulator.ui.screens.auth
 
-import androidx.compose.runtime.Composable
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.example.weathersimulator.ui.viewmodel.AuthViewModel
 
 @Composable
 fun RegisterScreen(
     navController: NavController,
     viewModel: AuthViewModel = hiltViewModel()
 ) {
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var confirmPassword by remember { mutableStateOf("") }
-
-    val state = viewModel.state.collectAsState()
+    val state = viewModel.state.collectAsState().value
 
     Column(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
-        verticalArrangement = Arrangement.Center
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        TextField(value = email, onValueChange = { email = it }, label = { Text("Email") })
-        TextField(value = password, onValueChange = { password = it }, label = { Text("Password") })
-        TextField(value = confirmPassword, onValueChange = { confirmPassword = it }, label = { Text("Confirm Password") })
+        Text("Înregistrare", style = MaterialTheme.typography.headlineMedium)
 
-        Button(
-            onClick = {
-                if (password == confirmPassword) {
-                    viewModel.register(email, password)
-                }
-            }
-        ) {
-            Text("Create account")
+        Spacer(modifier = Modifier.height(16.dp))
+
+        OutlinedTextField(
+            value = state.email,
+            onValueChange = viewModel::onEmailChange,
+            label = { Text("Email") },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        OutlinedTextField(
+            value = state.password,
+            onValueChange = viewModel::onPasswordChange,
+            label = { Text("Parolă") },
+            singleLine = true,
+            visualTransformation = PasswordVisualTransformation(),
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        if (state.error != null) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(state.error!!, color = MaterialTheme.colorScheme.error)
         }
 
-        if (state.value.success) {
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Button(
+            onClick = { viewModel.register() },
+            enabled = !state.isLoading,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Creează cont")
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            "Ai deja cont? Login",
+            modifier = Modifier.clickable {
+                navController.popBackStack()
+            }
+        )
+
+        if (state.isLoading) {
+            Spacer(modifier = Modifier.height(16.dp))
+            CircularProgressIndicator()
+        }
+    }
+
+    if (state.success) {
+        LaunchedEffect(true) {
             navController.navigate("home") {
                 popUpTo("register") { inclusive = true }
             }
         }
-
-        if (state.value.error != null) {
-            Text("Error: ${state.value.error}", color = Color.Red)
-        }
     }
 }
-

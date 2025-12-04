@@ -2,8 +2,8 @@ package com.example.weathersimulator.di
 
 import android.content.Context
 import androidx.room.Room
-import com.example.weathersimulator.core.data.local.WeatherDatabase
-import com.example.weathersimulator.core.data.local.user.UserDao
+import com.example.weathersimulator.data.local.WeatherDatabase
+import com.example.weathersimulator.data.local.user.UserDao
 import com.example.weathersimulator.data.repository.UserRepository
 import com.example.weathersimulator.domain.usecase.LoginUserUseCase
 import com.example.weathersimulator.domain.usecase.RegisterUserUseCase
@@ -27,12 +27,13 @@ object AppModule {
     @Singleton
     fun provideDatabase(
         @ApplicationContext context: Context
-    ): WeatherDatabase =
-        Room.databaseBuilder(
+    ): WeatherDatabase {
+        return Room.databaseBuilder(
             context,
             WeatherDatabase::class.java,
             "weather_db"
         ).build()
+    }
 
     @Provides
     fun provideUserDao(db: WeatherDatabase): UserDao = db.userDao()

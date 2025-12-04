@@ -1,45 +1,97 @@
 package com.example.weathersimulator.ui.screens.auth
 
-import androidx.compose.runtime.Composable
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.example.weathersimulator.ui.viewmodel.AuthViewModel
 
 @Composable
 fun LoginScreen(
     navController: NavController,
     viewModel: AuthViewModel = hiltViewModel()
 ) {
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
+    val state = viewModel.state.collectAsState().value
 
-    val state = viewModel.state.collectAsState()
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text("Login", style = MaterialTheme.typography.headlineMedium)
 
-    Column(...) {
+        Spacer(modifier = Modifier.height(16.dp))
 
-        TextField(...)
-        TextField(...)
+        OutlinedTextField(
+            value = state.email,
+            onValueChange = viewModel::onEmailChange,
+            label = { Text("Email") },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth()
+        )
 
-        Button(onClick = { viewModel.login(email, password) }) {
+        OutlinedTextField(
+            value = state.password,
+            onValueChange = viewModel::onPasswordChange,
+            label = { Text("Parolă") },
+            singleLine = true,
+            visualTransformation = PasswordVisualTransformation(),
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        if (state.error != null) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(state.error!!, color = MaterialTheme.colorScheme.error)
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Button(
+            onClick = { viewModel.login() },
+            enabled = !state.isLoading,
+            modifier = Modifier.fillMaxWidth()
+        ) {
             Text("Login")
         }
 
-        // Navigare după succes
-        if (state.value.success) {
-            navController.navigate("home") {
-                popUpTo("login") { inclusive = true }
-            }
-        }
-
-        if (state.value.error != null) {
-            Text("Error: ${state.value.error}", color = Color.Red)
-        }
+        Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            "Don't have an account? Register",
+            "Nu ai cont? Creează unul",
             modifier = Modifier.clickable {
                 navController.navigate("register")
             }
         )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            "Ai uitat parola?",
+            modifier = Modifier.clickable {
+                navController.navigate("resetPassword")
+            }
+        )
+
+        if (state.isLoading) {
+            Spacer(modifier = Modifier.height(16.dp))
+            CircularProgressIndicator()
+        }
+    }
+
+    // navigăm după success
+    if (state.success) {
+        LaunchedEffect(true) {
+            navController.navigate("home") {
+                popUpTo("login") { inclusive = true }
+            }
+        }
     }
 }
-
-

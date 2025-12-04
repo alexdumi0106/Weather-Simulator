@@ -33,12 +33,13 @@ android {
         jvmTarget = "17"
     }
 
+
     buildFeatures {
         compose = true
     }
 
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.11"
+        kotlinCompilerExtensionVersion = "1.5.14"
     }
 }
 
@@ -49,13 +50,18 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     implementation("androidx.activity:activity-compose:1.8.2")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.7.0")
+    implementation("androidx.hilt:hilt-navigation-compose:1.1.0")
     implementation("androidx.navigation:navigation-compose:2.7.5")
     
     implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
     implementation("com.google.firebase:firebase-auth-ktx")
     implementation("com.google.firebase:firebase-firestore-ktx")
-    implementation("com.google.dagger:hilt-android:2.52")
-    kapt("com.google.dagger:hilt-compiler:2.52")
+    implementation("com.google.dagger:hilt-android:2.55")
+    kapt("com.google.dagger:hilt-compiler:2.55")
+
+    implementation("androidx.room:room-runtime:2.6.1")
+    implementation("androidx.room:room-ktx:2.6.1")
+    kapt("androidx.room:room-compiler:2.6.1")
 }
 
 kapt {
