@@ -11,6 +11,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.weathersimulator.ui.viewmodel.AuthViewModel
+import com.example.weathersimulator.ui.navigation.Routes
 
 @Composable
 fun RegisterScreen(
@@ -79,8 +80,8 @@ fun RegisterScreen(
 
     if (state.success) {
         LaunchedEffect(true) {
-            navController.navigate("home") {
-                popUpTo("register") { inclusive = true }
+            navController.navigate(Routes.MAIN) {
+                popUpTo(Routes.REGISTER) { inclusive = true }
             }
         }
     }

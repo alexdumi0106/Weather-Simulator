@@ -11,6 +11,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.weathersimulator.ui.viewmodel.AuthViewModel
+import com.example.weathersimulator.ui.navigation.Routes
 
 @Composable
 fun LoginScreen(
@@ -89,8 +90,8 @@ fun LoginScreen(
     // navigăm după success
     if (state.success) {
         LaunchedEffect(true) {
-            navController.navigate("home") {
-                popUpTo("login") { inclusive = true }
+            navController.navigate(Routes.MAIN) {
+                popUpTo(Routes.LOGIN) { inclusive = true }
             }
         }
     }

@@ -33,6 +33,12 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.compose.foundation.clickable
 import com.google.firebase.auth.FirebaseAuth
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import com.example.weathersimulator.ui.navigation.Routes
+
 
 
 
@@ -70,23 +76,10 @@ fun SimulatorScreen(navController: NavController) {
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text(text = "Weather Simulator AI") },
-                actions = {
-                    Text(
-                        text = "Logout",
-                        modifier = Modifier
-                            .padding(end = 16.dp)
-                            .background(Color.Transparent)
-                            .clickable {
-                                // Actual logout
-                                FirebaseAuth.getInstance().signOut()
-
-                                navController.navigate("login") {
-                                    popUpTo("home") { inclusive = true }
-                                }
-                            },
-                        color = Color.Red,
-                        fontSize = 16.sp
-                    )
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors()
             )
