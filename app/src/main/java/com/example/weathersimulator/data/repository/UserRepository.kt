@@ -25,7 +25,6 @@ class UserRepository @Inject constructor(
                 preferences = emptyMap()
             )
 
-            // salvăm local
             userDao.insertUser(
                 UserEntity(
                     uid = newUser.id,

@@ -72,7 +72,7 @@ fun ResetPasswordScreen(
         Spacer(modifier = Modifier.height(24.dp))
 
         Text(
-            text = "Înapoi la login",
+            text = "Inapoi la login",
             modifier = Modifier.clickable {
                 navController.popBackStack()
             }

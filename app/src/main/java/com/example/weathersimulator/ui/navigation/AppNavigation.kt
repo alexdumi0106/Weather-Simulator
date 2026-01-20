@@ -36,22 +36,18 @@ fun AppNavigation() {
             ResetPasswordScreen(navController)
         }
 
-        // NOU: hub după login
         composable(Routes.MAIN) {
             MainScreen(navController)
         }
 
-        // NOU: simulator separat
         composable(Routes.SIMULATOR) {
             SimulatorScreen(navController)
         }
 
-        // NOU: settings separat
         composable(Routes.SETTINGS) {
             SettingsScreen(navController)
         }
 
-        // dacă vrei să păstrezi profile
         composable(Routes.PROFILE) {
             ProfileScreen(
                 onBack = { navController.popBackStack() },

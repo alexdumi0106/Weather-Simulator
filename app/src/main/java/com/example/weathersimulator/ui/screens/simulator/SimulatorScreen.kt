@@ -44,10 +44,10 @@ import com.example.weathersimulator.ui.navigation.Routes
 
 fun getBackgroundColor(cloudCoverage: Float): Color {
     return when {
-        cloudCoverage <= 40f ->
+        cloudCoverage < 40f ->
             Color(0xFF1565C0)
 
-        cloudCoverage in 41f..80f ->
+        cloudCoverage in 40f..80f ->
             Color(0xFF90CAF9)
 
         cloudCoverage > 80f ->

@@ -87,7 +87,6 @@ fun LoginScreen(
         }
     }
 
-    // navigăm după success
     if (state.success) {
         LaunchedEffect(true) {
             navController.navigate(Routes.MAIN) {
