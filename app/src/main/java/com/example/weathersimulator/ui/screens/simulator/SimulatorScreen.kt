@@ -31,14 +31,19 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import androidx.compose.foundation.clickable
-import com.google.firebase.auth.FirebaseAuth
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import com.example.weathersimulator.ui.navigation.Routes
-
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalContext
+import com.example.weathersimulator.ui.sensors.audio.AudioController
+import com.example.weathersimulator.R
+import android.util.Log
+import androidx.compose.material3.Button
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 
 
 
@@ -57,14 +62,93 @@ fun getBackgroundColor(cloudCoverage: Float): Color {
     }
 }
 
+private fun computeWeatherDescription(
+    temperature: Float,
+    humidity: Float,
+    pressure: Float,
+    wind: Float,
+    cloudCoverage: Float
+): Pair<String, String> {
+    return when {
+        humidity > 95 && pressure < 1010 && temperature in 0f..15f ->
+            "🌫️" to "Ceață"
+
+        temperature < 0 && humidity > 70 ->
+            "🌨️" to "Ninsoare"
+
+        humidity > 90 && wind >= 50 && pressure < 1000 ->
+            "⛈️" to "Furtună"
+
+        humidity > 70 && wind >= 40 && pressure in 995f..1005f && temperature > 20 && cloudCoverage in 20f..60f ->
+            "🌦️" to "Furtună cu soare"
+
+        humidity > 85 && pressure < 1005 && cloudCoverage >= 80 ->
+            "🌧️" to "Ploaie"
+
+        cloudCoverage == 0f -> "☀️" to "Insorit"
+        cloudCoverage == 20f -> "🌤️" to "Predominant insorit"
+        cloudCoverage == 40f -> "⛅" to "Parțial insorit"
+        cloudCoverage == 60f -> "🌥️" to "Nori și soare"
+        cloudCoverage == 80f -> "🌥️" to "Predominant noros"
+        cloudCoverage == 100f -> "☁️" to "Noros"
+
+        else -> "🌦️" to "Condiții variabile"
+    }
+}
+
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SimulatorScreen(navController: NavController) {
+
+    LaunchedEffect(Unit) {
+        Log.d("SimulatorScreen", "SimulatorScreen started")
+    }
+
     var temperature by remember { mutableStateOf(20f) }
     var humidity by remember { mutableStateOf(50f) }
     var pressure by remember { mutableStateOf(1013f) }
     var wind by remember { mutableStateOf(10f) }
     var cloudCoverage by remember { mutableStateOf(0f) }
+
+    val context = LocalContext.current
+    val audio = remember { AudioController(context) }
+
+    // pragul de vant puternic (km/h)
+    val strongWindThreshold = 50f
+
+    // derivăm condiția meteo din valorile actuale
+    val (iconNow, descriptionNow) = remember(temperature, humidity, pressure, wind, cloudCoverage) {
+        computeWeatherDescription(temperature, humidity, pressure, wind, cloudCoverage)
+    }
+
+    // Vant
+    LaunchedEffect(wind) {
+        if (wind >= strongWindThreshold) {
+            // volum opțional în funcție de cât depășește pragul (0.4..1.0)
+            val t = ((wind - strongWindThreshold) / (120f - strongWindThreshold)).coerceIn(0f, 1f)
+            val volume = 0.4f + 0.6f * t
+            audio.startWindLoop(resId = R.raw.`strong_wind`, volume = volume)
+        } else {
+            audio.stopWind()
+        }
+    }
+
+    // Tunet, cand sunt conditii de furtuna
+    //R = ID-ul intern Android pentru fișierul thunder.mp3 din res/raw
+    LaunchedEffect(descriptionNow) {
+        if (descriptionNow == "Furtună" || descriptionNow == "Furtună cu soare") {
+            Log.d("SimulatorScreen", "Playing thunder!")
+            audio.playThunder(R.raw.thunder)
+        }
+    }
+
+    // 3) Cleanup când ieși din ecran
+    DisposableEffect(Unit) {
+        onDispose {
+            audio.releaseAll()
+        }
+    }
 
     val backgroundColor by animateColorAsState(
         targetValue = getBackgroundColor(cloudCoverage),
@@ -93,10 +177,14 @@ fun SimulatorScreen(navController: NavController) {
                 .fillMaxSize()
                 .background(backgroundColor)
                 .padding(innerPadding)
-                .padding(16.dp),
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            Button(onClick = { audio.playThunder(R.raw.thunder) }) {
+                Text("Test Thunder")
+            }
             Text(text = "Alege valorile atmosferice:", fontSize = 20.sp)
 
             Text(text = "Temperatura: ${temperature.toInt()}°C", fontSize = 18.sp)
@@ -163,31 +251,7 @@ fun WeatherDisplayCard(
     cloudCoverage: Float
 ) {
     val (icon, description) = remember(temperature, humidity, pressure, wind, cloudCoverage) {
-        when {
-            humidity > 95 && pressure < 1010 && temperature in 0f..15f ->
-                "🌫️" to "Ceață"
-
-            temperature < 0 && humidity > 70 ->
-                "🌨️" to "Ninsoare"
-
-            humidity > 90 && wind >= 50 && pressure < 1000 ->
-                "⛈️" to "Furtună"
-
-            humidity > 70 && wind >= 40 && pressure in 995f..1005f && temperature > 20 && cloudCoverage in 20f .. 60f ->
-                "🌦️" to "Furtună cu soare"
-
-            humidity > 85 && pressure < 1005 && cloudCoverage >= 80 ->
-                "🌧️" to "Ploaie"
-
-            cloudCoverage == 0f -> "☀️" to "Insorit"
-            cloudCoverage == 20f -> "🌤️" to "Predominant insorit"
-            cloudCoverage == 40f -> "⛅" to "Parțial insorit"
-            cloudCoverage == 60f -> "🌥️" to "Nori și soare"
-            cloudCoverage == 80f -> "🌥️" to "Predominant noros"
-            cloudCoverage == 100f -> "☁️" to "Noros"
-
-            else -> "🌦️" to "Condiții variabile"
-        }
+        computeWeatherDescription(temperature, humidity, pressure, wind, cloudCoverage)
     }
 
     Card(
