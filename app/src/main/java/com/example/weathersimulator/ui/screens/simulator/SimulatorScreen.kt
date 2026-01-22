@@ -44,6 +44,12 @@ import android.util.Log
 import androidx.compose.material3.Button
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
+import androidx.compose.foundation.layout.Row
+import kotlin.math.roundToInt
+
+
 
 
 
@@ -69,6 +75,7 @@ private fun computeWeatherDescription(
     wind: Float,
     cloudCoverage: Float
 ): Pair<String, String> {
+    val cc = (cloudCoverage / 20f).roundToInt() * 20f
     return when {
         humidity > 95 && pressure < 1010 && temperature in 0f..15f ->
             "🌫️" to "Ceață"
@@ -85,12 +92,12 @@ private fun computeWeatherDescription(
         humidity > 85 && pressure < 1005 && cloudCoverage >= 80 ->
             "🌧️" to "Ploaie"
 
-        cloudCoverage == 0f -> "☀️" to "Insorit"
-        cloudCoverage == 20f -> "🌤️" to "Predominant insorit"
-        cloudCoverage == 40f -> "⛅" to "Parțial insorit"
-        cloudCoverage == 60f -> "🌥️" to "Nori și soare"
-        cloudCoverage == 80f -> "🌥️" to "Predominant noros"
-        cloudCoverage == 100f -> "☁️" to "Noros"
+        cc == 0f   -> "☀️" to "Însorit"
+        cc == 20f  -> "🌤️" to "Predominant însorit"
+        cc == 40f  -> "⛅"  to "Parțial însorit"
+        cc == 60f  -> "🌥️" to "Nori și soare"
+        cc == 80f  -> "🌥️" to "Predominant noros"
+        cc == 100f -> "☁️" to "Noros"
 
         else -> "🌦️" to "Condiții variabile"
     }
@@ -117,28 +124,51 @@ fun SimulatorScreen(navController: NavController) {
     // pragul de vant puternic (km/h)
     val strongWindThreshold = 50f
 
+    // pentru a porni/opri sunetele de fundal
+    var soundsEnabled by remember { mutableStateOf(true) }
+
+
     // derivăm condiția meteo din valorile actuale
     val (iconNow, descriptionNow) = remember(temperature, humidity, pressure, wind, cloudCoverage) {
         computeWeatherDescription(temperature, humidity, pressure, wind, cloudCoverage)
     }
 
     // Vant
-    LaunchedEffect(wind) {
+    LaunchedEffect(wind, soundsEnabled) {
+        if (!soundsEnabled) {
+            audio.stopWind()
+            return@LaunchedEffect
+        }
+
         if (wind >= strongWindThreshold) {
-            // volum opțional în funcție de cât depășește pragul (0.4..1.0)
             val t = ((wind - strongWindThreshold) / (120f - strongWindThreshold)).coerceIn(0f, 1f)
             val volume = 0.4f + 0.6f * t
-            audio.startWindLoop(resId = R.raw.`strong_wind`, volume = volume)
+            audio.startWindLoop(resId = R.raw.strong_wind, volume = volume)
         } else {
             audio.stopWind()
         }
     }
 
+    // Ploaie (loop) când sunt condiții de ploaie
+    LaunchedEffect(descriptionNow, soundsEnabled) {
+        if (!soundsEnabled) {
+            audio.stopRain()
+            return@LaunchedEffect
+        }
+
+        if (descriptionNow == "Ploaie") {
+            audio.startRainLoop(resId = R.raw.rain, volume = 0.6f)
+        } else {
+            audio.stopRain()
+        }
+    }
+
     // Tunet, cand sunt conditii de furtuna
     //R = ID-ul intern Android pentru fișierul thunder.mp3 din res/raw
-    LaunchedEffect(descriptionNow) {
+    LaunchedEffect(descriptionNow, soundsEnabled) {
+        if (!soundsEnabled) return@LaunchedEffect
+
         if (descriptionNow == "Furtună" || descriptionNow == "Furtună cu soare") {
-            Log.d("SimulatorScreen", "Playing thunder!")
             audio.playThunder(R.raw.thunder)
         }
     }
@@ -149,6 +179,13 @@ fun SimulatorScreen(navController: NavController) {
             audio.releaseAll()
         }
     }
+
+    LaunchedEffect(soundsEnabled) {
+        if (!soundsEnabled) {
+            audio.releaseAll() // oprește tot (wind + rain + thunder)
+        }
+    }
+
 
     val backgroundColor by animateColorAsState(
         targetValue = getBackgroundColor(cloudCoverage),
@@ -164,6 +201,12 @@ fun SimulatorScreen(navController: NavController) {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
+                },
+                actions = {
+                    Switch(
+                        checked = soundsEnabled,
+                        onCheckedChange = { soundsEnabled = it }
+                    )
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors()
             )
@@ -182,23 +225,24 @@ fun SimulatorScreen(navController: NavController) {
             verticalArrangement = Arrangement.spacedBy(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Button(onClick = { audio.playThunder(R.raw.thunder) }) {
-                Text("Test Thunder")
-            }
             Text(text = "Alege valorile atmosferice:", fontSize = 20.sp)
 
             Text(text = "Temperatura: ${temperature.toInt()}°C", fontSize = 18.sp)
             Slider(
                 value = temperature,
-                onValueChange = { temperature = it },
+                onValueChange = {
+                    temperature = it.roundToInt().toFloat()
+                },
                 valueRange = -20f..50f,
-                steps = 7
+                steps = 69
             )
 
             Text(text = "Umiditate: ${humidity.toInt()}%", fontSize = 18.sp)
             Slider(
                 value = humidity,
-                onValueChange = { humidity = it },
+                onValueChange = { v ->
+                    humidity = (v / 10f).roundToInt() * 10f
+                },
                 valueRange = 0f..100f,
                 steps = 9
             )
@@ -206,7 +250,9 @@ fun SimulatorScreen(navController: NavController) {
             Text(text = "Presiune : ${pressure.toInt()} hPa", fontSize = 18.sp)
             Slider(
                 value = pressure,
-                onValueChange = { pressure = it },
+                onValueChange = { p ->
+                    pressure = (p / 10f).roundToInt() * 10f
+                },
                 valueRange = 950f..1050f,
                 steps = 9
             )
@@ -214,20 +260,22 @@ fun SimulatorScreen(navController: NavController) {
             Text(text = "Viteza vântului: ${wind.toInt()} km/h", fontSize = 18.sp)
             Slider(
                 value = wind,
-                onValueChange = { wind = it },
+                onValueChange = { w ->
+                    wind = (w / 10f).roundToInt() * 10f
+                },
                 valueRange = 0f..120f,
                 steps = 11
             )
 
-
             Text(text = "Acoperire nori: ${cloudCoverage.toInt()}%", fontSize = 18.sp)
             Slider(
                 value = cloudCoverage,
-                onValueChange = { cloudCoverage = it },
+                onValueChange = { value ->
+                    cloudCoverage = (value / 20f).roundToInt() * 20f
+                },
                 valueRange = 0f..100f,
                 steps = 4
             )
-
 
             Spacer(modifier = Modifier.height(32.dp))
 
