@@ -10,6 +10,7 @@ interface UserDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertUser(user: UserEntity)
 
-    @Query("SELECT * FROM users WHERE uid = :uid")
-    suspend fun getUserById(uid: String): UserEntity?
+    @Query("SELECT * FROM users WHERE uid = :uid LIMIT 1")
+    suspend fun getUserByUid(uid: String): UserEntity?
+
 }

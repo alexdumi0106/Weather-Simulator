@@ -83,7 +83,7 @@ private fun computeWeatherDescription(
         temperature < 0 && humidity > 70 ->
             "🌨️" to "Ninsoare"
 
-        humidity > 90 && wind >= 50 && pressure < 1000 ->
+        humidity > 90 && wind >= 50 && pressure < 1000 && cloudCoverage > 60->
             "⛈️" to "Furtună"
 
         humidity > 70 && wind >= 40 && pressure in 995f..1005f && temperature > 20 && cloudCoverage in 20f..60f ->
@@ -134,11 +134,23 @@ fun SimulatorScreen(navController: NavController) {
     }
 
     // Vant
-    LaunchedEffect(wind, soundsEnabled) {
+    LaunchedEffect(wind, soundsEnabled, descriptionNow) {
         if (!soundsEnabled) {
             audio.stopWind()
             return@LaunchedEffect
         }
+
+        val isStorm = (descriptionNow == "Furtună" || descriptionNow == "Furtună cu soare")
+        val isRain = (
+                descriptionNow == "Ploaie" ||
+                        descriptionNow == "Averse" ||
+                        descriptionNow == "Ploaie cu soare"
+                )
+        if (isStorm || isRain) {
+            audio.stopWind()
+            return@LaunchedEffect
+        }
+
 
         if (wind >= strongWindThreshold) {
             val t = ((wind - strongWindThreshold) / (120f - strongWindThreshold)).coerceIn(0f, 1f)
@@ -166,12 +178,20 @@ fun SimulatorScreen(navController: NavController) {
     // Tunet, cand sunt conditii de furtuna
     //R = ID-ul intern Android pentru fișierul thunder.mp3 din res/raw
     LaunchedEffect(descriptionNow, soundsEnabled) {
-        if (!soundsEnabled) return@LaunchedEffect
+        val isStorm = (descriptionNow == "Furtună" || descriptionNow == "Furtună cu soare")
 
-        if (descriptionNow == "Furtună" || descriptionNow == "Furtună cu soare") {
+        if (!soundsEnabled) {
+            audio.stopThunder()
+            return@LaunchedEffect
+        }
+
+        if (isStorm) {
             audio.playThunder(R.raw.thunder)
+        } else {
+            audio.stopThunder()
         }
     }
+
 
     // 3) Cleanup când ieși din ecran
     DisposableEffect(Unit) {

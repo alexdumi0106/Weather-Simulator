@@ -56,8 +56,15 @@ fun ProfileScreen(
             )
 
             Text(
-                text = state.user?.email ?: "Unknown",
+                text = state.user?.name ?: "Unknown user",
                 style = MaterialTheme.typography.titleMedium
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = state.user?.email ?: "Unknown",
+                style = MaterialTheme.typography.bodyLarge
             )
 
             Spacer(modifier = Modifier.height(32.dp))

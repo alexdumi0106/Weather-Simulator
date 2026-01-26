@@ -12,16 +12,22 @@ class UserRepository @Inject constructor(
     private val userDao: UserDao
 ) {
 
-    suspend fun registerUser(email: String, password: String): Result<User> {
+    suspend fun registerUser(
+        email: String,
+        password: String,
+        firstName: String,
+        lastName: String
+    ): Result<User> {
         return try {
             val result = auth.createUserWithEmailAndPassword(email, password).await()
             val userId = result.user?.uid
                 ?: return Result.failure(Exception("User ID null"))
+            val fullName = "${firstName.trim()} ${lastName.trim()}".trim()
 
             val newUser = User(
                 id = userId,
                 email = email,
-                name = "",
+                name = fullName,
                 preferences = emptyMap()
             )
 
@@ -46,7 +52,7 @@ class UserRepository @Inject constructor(
             val uid = result.user?.uid
                 ?: return Result.failure(Exception("User ID null"))
 
-            val localUser = userDao.getUserById(uid)
+            val localUser = userDao.getUserByUid(uid)
 
             if (localUser != null) {
                 Result.success(
@@ -58,18 +64,38 @@ class UserRepository @Inject constructor(
                     )
                 )
             } else {
-                Result.success(
-                    User(
-                        id = uid,
-                        email = email,
-                        name = "",
-                        preferences = emptyMap()
+                val newUser = User(
+                    id = uid,
+                    email = email,
+                    name = "",
+                    preferences = emptyMap()
+                )
+
+                userDao.insertUser(
+                    UserEntity(
+                        uid = newUser.id,
+                        email = newUser.email,
+                        name = newUser.name
                     )
                 )
+
+                Result.success(newUser)
             }
+
 
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
+
+    suspend fun getLocalUser(uid: String): User? {
+        val entity = userDao.getUserByUid(uid) ?: return null
+        return User(
+            id = entity.uid,
+            email = entity.email,
+            name = entity.name,
+            preferences = emptyMap()
+        )
+    }
+
 }

@@ -142,7 +142,7 @@ class AudioController(private val context: Context) {
             mp.setOnPreparedListener {
                 Log.d("AudioController", "Wind prepared -> start()")
                 val v = volume.coerceIn(0f, 1f)
-                it.setVolume(1f, 1f)
+                it.setVolume(v, v)
                 it.start()
             }
 
@@ -170,6 +170,11 @@ class AudioController(private val context: Context) {
         windPlayer?.setVolume(v, v)
     }
 
+    fun stopThunder() {
+        releaseThunder()
+    }
+
+
     fun stopRain() {
         releaseRain()
     }
@@ -186,10 +191,14 @@ class AudioController(private val context: Context) {
     }
 
     private fun releaseThunder() {
-        thunderPlayer?.release()
+        thunderPlayer?.let { mp ->
+            try {
+                if (mp.isPlaying) mp.stop()
+            } catch (_: Exception) {}
+            mp.release()
+        }
         thunderPlayer = null
     }
-
     private fun releaseWind() {
         windPlayer?.release()
         windPlayer = null
