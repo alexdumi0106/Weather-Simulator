@@ -48,9 +48,31 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.foundation.layout.Row
 import kotlin.math.roundToInt
-
-
-
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.offset
+import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.unit.IntOffset
+import kotlin.math.sin
+import kotlin.math.PI
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.drawscope.Fill
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathFillType
+import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.platform.LocalDensity
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.weathersimulator.sensors.pressure.PressureTrend
+import com.example.weathersimulator.sensors.pressure.PressureViewModel
+import androidx.compose.foundation.layout.*
 
 
 fun getBackgroundColor(cloudCoverage: Float): Color {
@@ -106,8 +128,10 @@ private fun computeWeatherDescription(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SimulatorScreen(navController: NavController) {
-
+fun SimulatorScreen(
+    navController: NavController,
+    pressureViewModel: PressureViewModel = hiltViewModel()
+) {
     LaunchedEffect(Unit) {
         Log.d("SimulatorScreen", "SimulatorScreen started")
     }
@@ -120,17 +144,28 @@ fun SimulatorScreen(navController: NavController) {
 
     val context = LocalContext.current
     val audio = remember { AudioController(context) }
+    val pressureSensorState by pressureViewModel.uiState.collectAsState()
+
+    LaunchedEffect(Unit) {
+        pressureViewModel.start()
+    }
 
     // pragul de vant puternic (km/h)
     val strongWindThreshold = 50f
 
     // pentru a porni/opri sunetele de fundal
     var soundsEnabled by remember { mutableStateOf(true) }
-
+    var useBarometer by remember { mutableStateOf(true) }
 
     // derivăm condiția meteo din valorile actuale
     val (iconNow, descriptionNow) = remember(temperature, humidity, pressure, wind, cloudCoverage) {
         computeWeatherDescription(temperature, humidity, pressure, wind, cloudCoverage)
+    }
+    val sensorPressure = pressureSensorState.pressureHpa
+    LaunchedEffect(useBarometer, sensorPressure) {
+        if (useBarometer && sensorPressure != null) {
+            pressure = sensorPressure
+        }
     }
 
     // Vant
@@ -235,77 +270,131 @@ fun SimulatorScreen(navController: NavController) {
             .fillMaxSize()
             .background(backgroundColor)
     ) { innerPadding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(backgroundColor)
-                .padding(innerPadding)
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(text = "Alege valorile atmosferice:", fontSize = 20.sp)
-
-            Text(text = "Temperatura: ${temperature.toInt()}°C", fontSize = 18.sp)
-            Slider(
-                value = temperature,
-                onValueChange = {
-                    temperature = it.roundToInt().toFloat()
-                },
-                valueRange = -20f..50f,
-                steps = 69
+            // 1) FUNDAL ANIMAT (spate)
+            AnimatedSky(
+                cloudCoverage = cloudCoverage,
+                isStormy = (descriptionNow == "Furtună" || descriptionNow == "Furtună cu soare"),
+                pressureTrend = pressureSensorState.trendLabel
             )
 
-            Text(text = "Umiditate: ${humidity.toInt()}%", fontSize = 18.sp)
-            Slider(
-                value = humidity,
-                onValueChange = { v ->
-                    humidity = (v / 10f).roundToInt() * 10f
-                },
-                valueRange = 0f..100f,
-                steps = 9
-            )
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(16.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(text = "Alege valorile atmosferice:", fontSize = 20.sp)
 
-            Text(text = "Presiune : ${pressure.toInt()} hPa", fontSize = 18.sp)
-            Slider(
-                value = pressure,
-                onValueChange = { p ->
-                    pressure = (p / 10f).roundToInt() * 10f
-                },
-                valueRange = 950f..1050f,
-                steps = 9
-            )
+                Text(text = "Temperatura: ${temperature.toInt()}°C", fontSize = 18.sp)
+                Slider(
+                    value = temperature,
+                    onValueChange = {
+                        temperature = it.roundToInt().toFloat()
+                    },
+                    valueRange = -20f..50f,
+                    steps = 69
+                )
 
-            Text(text = "Viteza vântului: ${wind.toInt()} km/h", fontSize = 18.sp)
-            Slider(
-                value = wind,
-                onValueChange = { w ->
-                    wind = (w / 10f).roundToInt() * 10f
-                },
-                valueRange = 0f..120f,
-                steps = 11
-            )
+                Text(text = "Umiditate: ${humidity.toInt()}%", fontSize = 18.sp)
+                Slider(
+                    value = humidity,
+                    onValueChange = { v ->
+                        humidity = (v / 10f).roundToInt() * 10f
+                    },
+                    valueRange = 0f..100f,
+                    steps = 9
+                )
 
-            Text(text = "Acoperire nori: ${cloudCoverage.toInt()}%", fontSize = 18.sp)
-            Slider(
-                value = cloudCoverage,
-                onValueChange = { value ->
-                    cloudCoverage = (value / 20f).roundToInt() * 20f
-                },
-                valueRange = 0f..100f,
-                steps = 4
-            )
+                //Text(text = "Presiune : ${pressure.toInt()} hPa", fontSize = 18.sp)
+                val isBarometerAvailable = pressureSensorState.isAvailable
+                val trend = pressureSensorState.trendLabel
+                val trendHpaPerHour = pressureSensorState.trendHpaPerHour
 
-            Spacer(modifier = Modifier.height(32.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = if (useBarometer && sensorPressure != null)
+                            "Presiune (LIVE): ${sensorPressure.toInt()} hPa"
+                        else
+                            "Presiune: ${pressure.toInt()} hPa",
+                        fontSize = 18.sp
+                    )
 
-            WeatherDisplayCard(
-                temperature = temperature,
-                humidity = humidity,
-                pressure = pressure,
-                wind = wind,
-                cloudCoverage = cloudCoverage
-            )
+                    // Toggle doar dacă există senzor
+                    if (isBarometerAvailable) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(text = "LIVE", fontSize = 14.sp)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Switch(
+                                checked = useBarometer,
+                                onCheckedChange = { useBarometer = it }
+                            )
+                        }
+                    }
+                }
+
+                Slider(
+                    value = pressure,
+                    onValueChange = { p ->
+                        pressure = (p / 10f).roundToInt() * 10f
+                    },
+                    valueRange = 950f..1050f,
+                    steps = 9,
+                    enabled = !(useBarometer && sensorPressure != null)
+                )
+                if (isBarometerAvailable && trend != PressureTrend.UNKNOWN && trendHpaPerHour != null) {
+                    Text(
+                        text = "Trend: ${"%.1f".format(trendHpaPerHour)} hPa/oră • $trend",
+                        fontSize = 14.sp
+                    )
+                } else if (!isBarometerAvailable) {
+                    Text(
+                        text = "Barometru indisponibil. Folosește modul manual (slider).",
+                        fontSize = 14.sp
+                    )
+                }
+
+                Text(text = "Viteza vântului: ${wind.toInt()} km/h", fontSize = 18.sp)
+                Slider(
+                    value = wind,
+                    onValueChange = { w ->
+                        wind = (w / 10f).roundToInt() * 10f
+                    },
+                    valueRange = 0f..120f,
+                    steps = 11
+                )
+
+                Text(text = "Acoperire nori: ${cloudCoverage.toInt()}%", fontSize = 18.sp)
+                Slider(
+                    value = cloudCoverage,
+                    onValueChange = { value ->
+                        cloudCoverage = (value / 20f).roundToInt() * 20f
+                    },
+                    valueRange = 0f..100f,
+                    steps = 4
+                )
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                WeatherDisplayCard(
+                    temperature = temperature,
+                    humidity = humidity,
+                    pressure = pressure,
+                    wind = wind,
+                    cloudCoverage = cloudCoverage
+                )
+            }
         }
     }
 }
@@ -348,3 +437,133 @@ fun WeatherDisplayCard(
         }
     }
 }
+
+@Composable
+fun AnimatedSky(
+    cloudCoverage: Float,
+    isStormy: Boolean,
+    pressureTrend: PressureTrend
+) {
+    val infinite = rememberInfiniteTransition(label = "sky")
+
+    // Soarele pulsează (lumina)
+    val sunPulse by infinite.animateFloat(
+        initialValue = 0.92f,
+        targetValue = 1.08f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2400, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "sunPulse"
+    )
+
+    // Norii se mișcă
+    val cloudMove by infinite.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(22000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "cloudMove"
+    )
+
+    val cloudAlphaBase = (cloudCoverage / 100f).coerceIn(0f, 1f)
+
+    // dacă e furtună sau presiunea scade -> mai multă “dramă” la nori
+    val stormBoost = when {
+        isStormy -> 0.35f
+        pressureTrend == PressureTrend.RAPID_FALL -> 0.25f
+        pressureTrend == PressureTrend.FALLING -> 0.12f
+        else -> 0f
+    }
+
+    val cloudsAlpha = (cloudAlphaBase + stormBoost).coerceIn(0f, 1f)
+    val sunAlpha = (1f - cloudAlphaBase * 0.9f).coerceIn(0f, 1f)
+
+    Canvas(modifier = Modifier.fillMaxSize()) {
+        val w = size.width
+        val h = size.height
+
+        // 🌞 Sun (sus-stânga) cu glow
+        if (sunAlpha > 0.02f) {
+            val center = Offset(w * 0.18f, h * 0.18f)
+            val r = size.minDimension * 0.10f * sunPulse
+
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        Color(0xFFFFF59D).copy(alpha = 0.55f * sunAlpha),
+                        Color(0xFFFFF59D).copy(alpha = 0.12f * sunAlpha),
+                        Color.Transparent
+                    ),
+                    center = center,
+                    radius = r * 2.8f
+                ),
+                radius = r * 2.8f,
+                center = center
+            )
+
+            drawCircle(
+                color = Color(0xFFFFF59D).copy(alpha = 0.85f * sunAlpha),
+                radius = r,
+                center = center
+            )
+        }
+
+        // ☁️ Clouds (straturi)
+        if (cloudsAlpha > 0.02f) {
+            fun xPos(speed: Float): Float = (-0.25f * w) + (cloudMove * (1.5f * w) * speed)
+
+            val cloudColor = if (isStormy || pressureTrend == PressureTrend.RAPID_FALL)
+                Color(0xFF90A4AE).copy(alpha = cloudsAlpha * 0.9f)
+            else
+                Color.White.copy(alpha = cloudsAlpha * 0.85f)
+
+            drawCloudStrip(
+                baseX = xPos(0.60f),
+                baseY = h * 0.22f,
+                scale = 1.2f,
+                color = cloudColor
+            )
+            drawCloudStrip(
+                baseX = xPos(0.90f),
+                baseY = h * 0.34f,
+                scale = 1.5f,
+                color = cloudColor.copy(alpha = cloudColor.alpha * 0.90f)
+            )
+            drawCloudStrip(
+                baseX = xPos(1.15f),
+                baseY = h * 0.48f,
+                scale = 1.8f,
+                color = cloudColor.copy(alpha = cloudColor.alpha * 0.80f)
+            )
+        }
+    }
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawCloudStrip(
+    baseX: Float,
+    baseY: Float,
+    scale: Float,
+    color: Color
+) {
+    val r = size.minDimension * 0.06f * scale
+    val x = baseX
+    val y = baseY
+
+    // “pufuri”
+    drawCircle(color = color, radius = r * 0.9f, center = Offset(x + r * 1.0f, y))
+    drawCircle(color = color, radius = r * 1.1f, center = Offset(x + r * 2.1f, y - r * 0.35f))
+    drawCircle(color = color, radius = r * 0.95f, center = Offset(x + r * 3.3f, y))
+    drawCircle(color = color, radius = r * 0.8f, center = Offset(x + r * 4.2f, y + r * 0.1f))
+
+    // “corp” (oval)
+    drawRoundRect(
+        color = color,
+        topLeft = Offset(x + r * 0.6f, y),
+        size = Size(width = r * 4.0f, height = r * 1.4f),
+        cornerRadius = androidx.compose.ui.geometry.CornerRadius(r, r)
+    )
+}
+
