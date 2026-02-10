@@ -16,7 +16,8 @@ import com.example.weathersimulator.ui.sensors.location.LocationViewModel
 import com.google.firebase.FirebaseApp
 import dagger.hilt.android.AndroidEntryPoint
 import androidx.compose.ui.platform.LocalContext
-
+import android.os.Build
+import com.example.weathersimulator.workers.WeatherWorkScheduler
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -27,9 +28,41 @@ class MainActivity : ComponentActivity() {
             WeatherSimulatorTheme {
                 val locationVm: LocationViewModel = hiltViewModel()
                 LocationPermissionGate(locationVm)
+                NotificationPermissionGate()
                 AppNavigation()
             }
         }
+    }
+}
+
+@Composable
+private fun NotificationPermissionGate() {
+    val context = LocalContext.current
+
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+        LaunchedEffect(Unit) { WeatherWorkScheduler.schedule(context) }
+        return
+    }
+
+    var granted by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) == PackageManager.PERMISSION_GRANTED
+        )
+    }
+
+    val launcher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { ok ->
+        granted = ok
+        if (ok) WeatherWorkScheduler.schedule(context)
+    }
+
+    LaunchedEffect(Unit) {
+        if (granted) WeatherWorkScheduler.schedule(context)
+        else launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
     }
 }
 
