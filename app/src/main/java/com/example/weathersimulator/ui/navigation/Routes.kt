@@ -10,4 +10,7 @@ object Routes {
     const val SETTINGS = "settings"
 
     const val PROFILE = "profile"
+
+    const val AI_SIMULATION = "ai_simulation"
+
 }

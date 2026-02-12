@@ -73,6 +73,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.weathersimulator.sensors.pressure.PressureTrend
 import com.example.weathersimulator.sensors.pressure.PressureViewModel
 import androidx.compose.foundation.layout.*
+import com.example.weathersimulator.ui.navigation.Routes
+
 
 
 fun getBackgroundColor(cloudCoverage: Float): Color {
@@ -386,6 +388,13 @@ fun SimulatorScreen(
                 )
 
                 Spacer(modifier = Modifier.height(32.dp))
+
+                Button(
+                    onClick = { navController.navigate(Routes.AI_SIMULATION) },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Simulare bazată pe AI")
+                }
 
                 WeatherDisplayCard(
                     temperature = temperature,

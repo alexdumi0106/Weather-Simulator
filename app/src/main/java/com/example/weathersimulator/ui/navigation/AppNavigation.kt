@@ -12,6 +12,8 @@ import com.example.weathersimulator.ui.screens.main.MainScreen
 import com.example.weathersimulator.ui.screens.settings.SettingsScreen
 import com.example.weathersimulator.ui.screens.simulator.SimulatorScreen
 import com.google.firebase.auth.FirebaseAuth
+import com.example.weathersimulator.ui.screens.simulator.AiSimulationScreen
+
 
 @Composable
 fun AppNavigation() {
@@ -56,6 +58,12 @@ fun AppNavigation() {
                         popUpTo(Routes.MAIN) { inclusive = true }
                     }
                 }
+            )
+        }
+
+        composable(Routes.AI_SIMULATION) {
+            AiSimulationScreen(
+                onBack = { navController.popBackStack() }
             )
         }
     }
