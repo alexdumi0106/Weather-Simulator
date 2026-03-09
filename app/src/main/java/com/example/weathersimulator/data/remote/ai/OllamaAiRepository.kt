@@ -10,7 +10,7 @@ class OllamaAiRepository @Inject constructor(
     override suspend fun generate(prompt: String): String {
         val res = api.generate(
             OllamaRequest(
-                model = "llama3.2:1b",   // se poate schimba ulterior
+                model = "weather-sim-ft",   // se poate schimba ulterior
                 prompt = prompt,
                 stream = false
             )

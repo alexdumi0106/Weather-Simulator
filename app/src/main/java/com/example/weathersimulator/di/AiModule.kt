@@ -31,7 +31,7 @@ object AiModule {
             .build()
 
         return Retrofit.Builder()
-            .baseUrl("http://192.168.100.80:11434/") // pentru emulator
+            .baseUrl("http://localhost:11434/") // pentru emulator
             .client(client)
             .addConverterFactory(GsonConverterFactory.create())
             .build()

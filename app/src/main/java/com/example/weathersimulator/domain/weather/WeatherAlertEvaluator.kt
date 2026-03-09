@@ -10,21 +10,30 @@ object WeatherAlertEvaluator {
     fun evaluate(resp: OpenMeteoResponse): WeatherAlert? {
 
         val h = resp.hourly ?: return null
-        val n = min(1, h.time.size)
+        val n = min(12, h.time.size)
         if (n == 0) return null
 
         val precipMax = h.precipitation.take(n).maxOrNull() ?: 0.0
-        val windMax = h.windspeed_10m.take(n).maxOrNull() ?: 0.0
-        val codes = h.weathercode.take(n)
+        val windMax = h.windSpeed.take(n).maxOrNull() ?: 0.0
+        val codes = h.weatherCode.take(n)
 
-        val storm = codes.any { it in listOf(95, 96, 99) }
+        val storm = codes.any { code -> code in listOf(95, 96, 99) }
         val rainSoon = precipMax >= 0.2
         val windy = windMax >= 45.0
 
         return when {
-            storm -> WeatherAlert("Atenție: posibilă furtună", "În următoarele ore pot apărea averse si descărcări electrice.")
-            rainSoon -> WeatherAlert("Ploaie posibilă", "Sunt șanse de precipitații în următoarele ore.")
-            windy -> WeatherAlert("Vânt puternic", "Vântul poate deveni puternic în următoarele ore.")
+            storm -> WeatherAlert(
+                "Atenție: posibilă furtună",
+                "În următoarele ore pot apărea averse și descărcări electrice."
+            )
+            rainSoon -> WeatherAlert(
+                "Ploaie posibilă",
+                "Sunt șanse de precipitații în următoarele ore."
+            )
+            windy -> WeatherAlert(
+                "Vânt puternic",
+                "Vântul poate deveni puternic în următoarele ore."
+            )
             else -> null
         }
     }
