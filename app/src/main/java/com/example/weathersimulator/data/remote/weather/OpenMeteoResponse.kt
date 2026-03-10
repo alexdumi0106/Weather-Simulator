@@ -31,7 +31,10 @@ data class CurrentDto(
     val windSpeed: Double? = null,
 
     @SerializedName("pressure_msl")
-    val pressure: Double? = null
+    val pressure: Double? = null,
+
+    @SerializedName("is_day")
+    val isDay: Int?
 )
 
 data class HourlyDto(
@@ -52,7 +55,10 @@ data class HourlyDto(
     val humidity: List<Int> = emptyList(),
 
     @SerializedName("pressure_msl")
-    val pressure: List<Double> = emptyList()
+    val pressure: List<Double> = emptyList(),
+
+    @SerializedName("is_day")
+    val isDay: List<Int>
 )
 
 data class DailyDto(

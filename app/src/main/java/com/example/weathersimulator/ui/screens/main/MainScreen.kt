@@ -35,13 +35,15 @@ import com.example.weathersimulator.ui.components.SecondaryActionButton
 import com.example.weathersimulator.ui.navigation.Routes
 import com.example.weathersimulator.ui.sensors.location.LocationViewModel
 import com.google.firebase.auth.FirebaseAuth
-
+import com.example.weathersimulator.ui.components.HourlyForecastRow
+import com.example.weathersimulator.ui.screens.main.HourlyForecastItemUi
 
 @Composable
 fun WeatherHomeSection(
     isLoading: Boolean,
     error: String?,
-    data: OpenMeteoResponse?
+    data: OpenMeteoResponse?,
+    hourlyForecast: List<HourlyForecastItemUi>
 ) {
     if (isLoading) {
         LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
@@ -70,7 +72,10 @@ fun WeatherHomeSection(
 
     Spacer(Modifier.height(12.dp))
 
-    // Hourly + Daily (le facem imediat după ce confirmi că îți vine data corect)
+    HourlyForecastRow(
+        items = hourlyForecast,
+        modifier = Modifier.fillMaxWidth()
+    )
 }
 
 
@@ -123,7 +128,8 @@ fun MainScreen(navController: NavController) {
             WeatherHomeSection(
                 isLoading = weatherState.isLoading,
                 error = weatherState.error,
-                data = weatherState.data
+                data = weatherState.data,
+                hourlyForecast = weatherState.hourlyForecast
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -174,7 +180,6 @@ fun MainScreen(navController: NavController) {
                     }
                 )
             }
-
         }
     }
 }

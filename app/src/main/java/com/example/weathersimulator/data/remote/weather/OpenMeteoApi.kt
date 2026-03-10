@@ -12,11 +12,11 @@ interface OpenMeteoApi {
 
         // Current weather (cardul de sus)
         @Query("current") current: String =
-            "temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,pressure_msl",
+            "temperature_2m,apparent_temperature,weather_code,is_day,wind_speed_10m,relative_humidity_2m,pressure_msl",
 
         // Hourly forecast (scroll orizontal)
         @Query("hourly") hourly: String =
-            "temperature_2m,precipitation,weather_code,wind_speed_10m,relative_humidity_2m,pressure_msl",
+            "temperature_2m,weather_code,is_day,wind_speed_10m,relative_humidity_2m,pressure_msl",
 
         // Daily forecast (7 zile)
         @Query("daily") daily: String =
