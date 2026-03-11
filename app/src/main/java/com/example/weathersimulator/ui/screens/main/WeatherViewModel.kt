@@ -55,15 +55,32 @@ class WeatherViewModel @Inject constructor(
         val times = hourly.time
         val temperatures = hourly.temperature
         val weatherCodes = hourly.weatherCode
+        val isDayList = hourly.isDay
 
-        val size = minOf(times.size, temperatures.size, weatherCodes.size, 12)
+        val maxAvailable = minOf(
+            times.size,
+            temperatures.size,
+            weatherCodes.size,
+            isDayList.size
+        )
 
-        return (0 until size).map { index ->
+        if (maxAvailable == 0) return emptyList()
+
+        val currentHour = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:00", java.util.Locale.getDefault())
+            .format(java.util.Date())
+
+        val startIndex = times.indexOfFirst { it == currentHour }.let { index ->
+            if (index >= 0) index else 0
+        }
+
+        val endIndex = minOf(startIndex + 12, maxAvailable)
+
+        return (startIndex until endIndex).map { index ->
             HourlyForecastItemUi(
                 time = formatHour(times[index]),
                 temperature = "${temperatures[index].toInt()}°",
                 weatherCode = weatherCodes[index],
-                isDay = hourly.isDay[index] == 1
+                isDay = isDayList[index] == 1
             )
         }
     }

@@ -37,7 +37,8 @@ import com.example.weathersimulator.ui.sensors.location.LocationViewModel
 import com.google.firebase.auth.FirebaseAuth
 import com.example.weathersimulator.ui.components.HourlyForecastRow
 import com.example.weathersimulator.ui.screens.main.HourlyForecastItemUi
-
+import androidx.compose.foundation.layout.Row
+import androidx.compose.ui.Alignment
 @Composable
 fun WeatherHomeSection(
     isLoading: Boolean,
@@ -61,9 +62,46 @@ fun WeatherHomeSection(
     Card(
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(text = "Acum", style = MaterialTheme.typography.titleMedium)
-            Text(text = "${current.temperature?.toInt() ?: "--"}°C", style = MaterialTheme.typography.displaySmall)
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text(
+                text = "Acum",
+                style = MaterialTheme.typography.titleMedium
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        text = "${current.temperature?.toInt() ?: "--"}°C",
+                        style = MaterialTheme.typography.displaySmall
+                    )
+
+                    Text(
+                        text = currentWeatherLabel(
+                            code = current.weatherCode ?: 0,
+                            isDay = current.isDay == 1
+                        ),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+
+                Text(
+                    text = weatherCodeToEmoji(
+                        code = current.weatherCode ?: 0,
+                        isDay = current.isDay == 1
+                    ),
+                    style = MaterialTheme.typography.displayMedium
+                )
+            }
+
             Text(text = "Feels like: ${current.apparentTemperature?.toInt() ?: "--"}°C")
             Text(text = "Wind: ${current.windSpeed?.toInt() ?: "--"} km/h • Humidity: ${current.humidity ?: "--"}%")
             Text(text = "Pressure: ${current.pressure?.toInt() ?: "--"} hPa")
@@ -181,5 +219,38 @@ fun MainScreen(navController: NavController) {
                 )
             }
         }
+    }
+}
+
+private fun weatherCodeToEmoji(code: Int, isDay: Boolean): String {
+    return when (code) {
+        0 -> if (isDay) "☀" else "🌙"
+        1, 2 -> if (isDay) "🌤" else "🌙☁"
+        3 -> if (isDay) "☁" else "☁🌙"
+        45, 48 -> "🌫"
+        51, 53, 55, 56, 57 -> if (isDay) "🌦" else "🌧🌙"
+        61, 63, 65, 66, 67 -> "🌧"
+        71, 73, 75, 77 -> "❄"
+        80, 81, 82 -> "🌧"
+        85, 86 -> "🌨"
+        95, 96, 99 -> "⛈"
+        else -> if (isDay) "☁" else "☁🌙"
+    }
+}
+
+private fun currentWeatherLabel(code: Int, isDay: Boolean): String {
+    return when (code) {
+        0 -> if (isDay) "Cer senin" else "Noapte senină"
+        1 -> if (isDay) "Mai mult senin" else "Noapte mai mult senină"
+        2 -> "Parțial noros"
+        3 -> "Înnorat"
+        45, 48 -> "Ceață"
+        51, 53, 55, 56, 57 -> "Burniță"
+        61, 63, 65, 66, 67 -> "Ploaie"
+        71, 73, 75, 77 -> "Ninsoare"
+        80, 81, 82 -> "Averse"
+        85, 86 -> "Averse de ninsoare"
+        95, 96, 99 -> "Furtună"
+        else -> "Vreme necunoscută"
     }
 }
