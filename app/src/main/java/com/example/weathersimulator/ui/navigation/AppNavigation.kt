@@ -9,6 +9,7 @@ import com.example.weathersimulator.ui.screens.auth.RegisterScreen
 import com.example.weathersimulator.ui.screens.auth.ResetPasswordScreen
 import com.example.weathersimulator.ui.screens.auth.ProfileScreen
 import com.example.weathersimulator.ui.screens.main.MainScreen
+import com.example.weathersimulator.ui.screens.WeatherSimulatorTheme
 import com.example.weathersimulator.ui.screens.settings.SettingsScreen
 import com.example.weathersimulator.ui.screens.simulator.SimulatorScreen
 import com.google.firebase.auth.FirebaseAuth
@@ -27,19 +28,27 @@ fun AppNavigation() {
         startDestination = startDestination
     ) {
         composable(Routes.LOGIN) {
-            LoginScreen(navController)
+            WeatherSimulatorTheme(darkTheme = false, dynamicColor = false) {
+                LoginScreen(navController)
+            }
         }
 
         composable(Routes.REGISTER) {
-            RegisterScreen(navController)
+            WeatherSimulatorTheme(darkTheme = false, dynamicColor = false) {
+                RegisterScreen(navController)
+            }
         }
 
         composable(Routes.RESET_PASSWORD) {
-            ResetPasswordScreen(navController)
+            WeatherSimulatorTheme(darkTheme = false, dynamicColor = false) {
+                ResetPasswordScreen(navController)
+            }
         }
 
         composable(Routes.MAIN) {
-            MainScreen(navController)
+            WeatherSimulatorTheme(darkTheme = false, dynamicColor = false) {
+                MainScreen(navController)
+            }
         }
 
         composable(Routes.SIMULATOR) {
@@ -47,24 +56,30 @@ fun AppNavigation() {
         }
 
         composable(Routes.SETTINGS) {
-            SettingsScreen(navController)
+            WeatherSimulatorTheme(darkTheme = false, dynamicColor = false) {
+                SettingsScreen(navController)
+            }
         }
 
         composable(Routes.PROFILE) {
-            ProfileScreen(
-                onBack = { navController.popBackStack() },
-                onLogout = {
-                    navController.navigate(Routes.LOGIN) {
-                        popUpTo(Routes.MAIN) { inclusive = true }
+            WeatherSimulatorTheme(darkTheme = false, dynamicColor = false) {
+                ProfileScreen(
+                    onBack = { navController.popBackStack() },
+                    onLogout = {
+                        navController.navigate(Routes.LOGIN) {
+                            popUpTo(Routes.MAIN) { inclusive = true }
+                        }
                     }
-                }
-            )
+                )
+            }
         }
 
         composable(Routes.AI_SIMULATION) {
-            AiSimulationScreen(
-                onBack = { navController.popBackStack() }
-            )
+            WeatherSimulatorTheme(darkTheme = false, dynamicColor = false) {
+                AiSimulationScreen(
+                    onBack = { navController.popBackStack() }
+                )
+            }
         }
     }
 }

@@ -62,6 +62,7 @@ data class HourlyDto(
 )
 
 data class DailyDto(
+    @SerializedName("time")
     val time: List<String> = emptyList(),
 
     @SerializedName("weather_code")

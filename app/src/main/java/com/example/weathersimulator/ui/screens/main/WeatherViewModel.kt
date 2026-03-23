@@ -30,11 +30,13 @@ class WeatherViewModel @Inject constructor(
                 Log.d("WeatherDebug", "HOURLY TEMPS = ${response.hourly?.temperature}")
                 Log.d("WeatherDebug", "HOURLY CODES = ${response.hourly?.weatherCode}")
                 val hourlyItems = mapHourlyForecast(response)
+                val dailyItems = mapDailyForecast(response)
                 _state.update {
                     it.copy(
                         isLoading = false,
                         data = response,
                         hourlyForecast = hourlyItems,
+                        dailyForecast = dailyItems,
                         error = null
                     )
                 }
@@ -82,6 +84,45 @@ class WeatherViewModel @Inject constructor(
                 weatherCode = weatherCodes[index],
                 isDay = isDayList[index] == 1
             )
+        }
+    }
+
+    private fun mapDailyForecast(
+        response: com.example.weathersimulator.data.remote.weather.OpenMeteoResponse
+    ): List<DailyForecastItemUi> {
+        val daily = response.daily ?: return emptyList()
+
+        val times = daily.time
+        val maxTemps = daily.tempMax
+        val minTemps = daily.tempMin
+        val weatherCodes = daily.weatherCode
+
+        val size = minOf(times.size, maxTemps.size, minTemps.size, weatherCodes.size, 15)
+
+        return (0 until size).map { index ->
+            DailyForecastItemUi(
+                dayLabel = formatDayLabel(times[index], index),
+                maxTemperature = "${maxTemps[index].toInt()}°",
+                minTemperature = "${minTemps[index].toInt()}°",
+                weatherCode = weatherCodes[index]
+            )
+        }
+    }
+
+    private fun formatDayLabel(date: String, index: Int): String {
+        return try {
+            if (index == 0) return "Astăzi"
+            if (index == 1) return "Mâine"
+
+            val inputFormat = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+            val outputFormat = java.text.SimpleDateFormat("EEEE", java.util.Locale("ro"))
+
+            val parsedDate = inputFormat.parse(date)
+            val day = outputFormat.format(parsedDate ?: return date)
+
+            day.replaceFirstChar { it.uppercase() }
+        } catch (e: Exception) {
+            date
         }
     }
 

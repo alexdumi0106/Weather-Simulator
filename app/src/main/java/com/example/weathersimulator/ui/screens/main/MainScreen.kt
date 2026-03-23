@@ -15,6 +15,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -39,12 +40,18 @@ import com.example.weathersimulator.ui.components.HourlyForecastRow
 import com.example.weathersimulator.ui.screens.main.HourlyForecastItemUi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
+import com.example.weathersimulator.ui.components.DailyForecastList
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+
 @Composable
 fun WeatherHomeSection(
     isLoading: Boolean,
     error: String?,
     data: OpenMeteoResponse?,
-    hourlyForecast: List<HourlyForecastItemUi>
+    hourlyForecast: List<HourlyForecastItemUi>,
+    dailyForecast: List<DailyForecastItemUi>
 ) {
     if (isLoading) {
         LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
@@ -114,6 +121,13 @@ fun WeatherHomeSection(
         items = hourlyForecast,
         modifier = Modifier.fillMaxWidth()
     )
+
+    Spacer(Modifier.height(16.dp))
+
+    DailyForecastList(
+        items = dailyForecast,
+        modifier = Modifier.fillMaxWidth()
+    )
 }
 
 
@@ -142,15 +156,21 @@ fun MainScreen(navController: NavController) {
 
     var showDialog by remember { mutableStateOf(false) }
     Scaffold(
+        containerColor = Color.White,
         topBar = {
             Column {
                 CenterAlignedTopAppBar(
-                    title = { Text("Weather Simulator AI") }
+                    title = { Text("Weather Simulator AI") },
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                        containerColor = Color.White,
+                        titleContentColor = Color.Black
+                    )
                 )
                 val label = s.placeName ?: "Determin locația..."
                 Text(
                     text = label,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    color = Color.Black
                 )
             }
         }
@@ -159,7 +179,8 @@ fun MainScreen(navController: NavController) {
             modifier = Modifier
                 .padding(padding)
                 .padding(16.dp)
-                .fillMaxSize(),
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
 
@@ -167,7 +188,8 @@ fun MainScreen(navController: NavController) {
                 isLoading = weatherState.isLoading,
                 error = weatherState.error,
                 data = weatherState.data,
-                hourlyForecast = weatherState.hourlyForecast
+                hourlyForecast = weatherState.hourlyForecast,
+                dailyForecast = weatherState.dailyForecast
             )
 
             Spacer(modifier = Modifier.height(16.dp))

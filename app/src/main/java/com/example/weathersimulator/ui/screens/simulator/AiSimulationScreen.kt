@@ -1,9 +1,11 @@
 package com.example.weathersimulator.ui.screens.simulator
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.background
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.weathersimulator.ui.viewmodel.AiViewModel
@@ -18,6 +20,7 @@ fun AiSimulationScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(Color.White)
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
@@ -25,6 +28,16 @@ fun AiSimulationScreen(
             Text("AI Weather Simulation", style = MaterialTheme.typography.titleLarge)
             TextButton(onClick = onBack) { Text("Back") }
         }
+
+        OutlinedTextField(
+            value = state.serverUrl,
+            onValueChange = vm::onServerUrlChange,
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("Server URL") },
+            placeholder = { Text("ex: http://192.168.100.80:8000/") },
+            singleLine = true,
+            supportingText = { Text("IP-ul PC-ului pe aceeași rețea Wi-Fi ca telefonul") }
+        )
 
         OutlinedTextField(
             value = state.prompt,

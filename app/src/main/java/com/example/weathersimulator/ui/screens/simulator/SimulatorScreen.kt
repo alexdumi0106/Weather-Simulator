@@ -18,6 +18,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -281,7 +282,9 @@ fun SimulatorScreen(
             AnimatedSky(
                 cloudCoverage = cloudCoverage,
                 isStormy = (descriptionNow == "Furtună" || descriptionNow == "Furtună cu soare"),
-                pressureTrend = pressureSensorState.trendLabel
+                pressureTrend = pressureSensorState.trendLabel,
+                windSpeed = wind,
+                humidity = humidity
             )
 
             Column(
@@ -293,26 +296,34 @@ fun SimulatorScreen(
                 verticalArrangement = Arrangement.spacedBy(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(text = "Alege valorile atmosferice:", fontSize = 20.sp)
+                Text(text = "Alege valorile atmosferice:", fontSize = 20.sp, color = Color.Black)
 
-                Text(text = "Temperatura: ${temperature.toInt()}°C", fontSize = 18.sp)
+                val sliderColors = SliderDefaults.colors(
+                    thumbColor = Color(0xFFFFB08A),
+                    activeTrackColor = Color(0xFFFFB08A),
+                    inactiveTrackColor = Color(0xFF4F4F4F)
+                )
+
+                Text(text = "Temperatura: ${temperature.toInt()}°C", fontSize = 18.sp, color = Color.Black)
                 Slider(
                     value = temperature,
                     onValueChange = {
                         temperature = it.roundToInt().toFloat()
                     },
                     valueRange = -20f..50f,
-                    steps = 69
+                    steps = 69,
+                    colors = sliderColors
                 )
 
-                Text(text = "Umiditate: ${humidity.toInt()}%", fontSize = 18.sp)
+                Text(text = "Umiditate: ${humidity.toInt()}%", fontSize = 18.sp, color = Color.Black)
                 Slider(
                     value = humidity,
                     onValueChange = { v ->
                         humidity = (v / 10f).roundToInt() * 10f
                     },
                     valueRange = 0f..100f,
-                    steps = 9
+                    steps = 9,
+                    colors = sliderColors
                 )
 
                 //Text(text = "Presiune : ${pressure.toInt()} hPa", fontSize = 18.sp)
@@ -330,13 +341,14 @@ fun SimulatorScreen(
                             "Presiune (LIVE): ${sensorPressure.toInt()} hPa"
                         else
                             "Presiune: ${pressure.toInt()} hPa",
-                        fontSize = 18.sp
+                        fontSize = 18.sp,
+                        color = Color.Black
                     )
 
                     // Toggle doar dacă există senzor
                     if (isBarometerAvailable) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(text = "LIVE", fontSize = 14.sp)
+                            Text(text = "LIVE", fontSize = 14.sp, color = Color.Black)
                             Spacer(modifier = Modifier.width(8.dp))
                             Switch(
                                 checked = useBarometer,
@@ -353,38 +365,43 @@ fun SimulatorScreen(
                     },
                     valueRange = 950f..1050f,
                     steps = 9,
-                    enabled = !(useBarometer && sensorPressure != null)
+                    enabled = !(useBarometer && sensorPressure != null),
+                    colors = sliderColors
                 )
                 if (isBarometerAvailable && trend != PressureTrend.UNKNOWN && trendHpaPerHour != null) {
                     Text(
                         text = "Trend: ${"%.1f".format(trendHpaPerHour)} hPa/oră • $trend",
-                        fontSize = 14.sp
+                        fontSize = 14.sp,
+                        color = Color.Black
                     )
                 } else if (!isBarometerAvailable) {
                     Text(
                         text = "Barometru indisponibil. Folosește modul manual (slider).",
-                        fontSize = 14.sp
+                        fontSize = 14.sp,
+                        color = Color.Black
                     )
                 }
 
-                Text(text = "Viteza vântului: ${wind.toInt()} km/h", fontSize = 18.sp)
+                Text(text = "Viteza vântului: ${wind.toInt()} km/h", fontSize = 18.sp, color = Color.Black)
                 Slider(
                     value = wind,
                     onValueChange = { w ->
                         wind = (w / 10f).roundToInt() * 10f
                     },
                     valueRange = 0f..120f,
-                    steps = 11
+                    steps = 11,
+                    colors = sliderColors
                 )
 
-                Text(text = "Acoperire nori: ${cloudCoverage.toInt()}%", fontSize = 18.sp)
+                Text(text = "Acoperire nori: ${cloudCoverage.toInt()}%", fontSize = 18.sp, color = Color.Black)
                 Slider(
                     value = cloudCoverage,
                     onValueChange = { value ->
                         cloudCoverage = (value / 20f).roundToInt() * 20f
                     },
                     valueRange = 0f..100f,
-                    steps = 4
+                    steps = 4,
+                    colors = sliderColors
                 )
 
                 Spacer(modifier = Modifier.height(32.dp))
@@ -451,9 +468,13 @@ fun WeatherDisplayCard(
 fun AnimatedSky(
     cloudCoverage: Float,
     isStormy: Boolean,
-    pressureTrend: PressureTrend
+    pressureTrend: PressureTrend,
+    windSpeed: Float,
+    humidity: Float
 ) {
     val infinite = rememberInfiniteTransition(label = "sky")
+    val windFactor = (windSpeed / 120f).coerceIn(0f, 1f)
+    val cloudDriftDuration = (26000f - windFactor * 17000f).roundToInt().coerceIn(7000, 26000)
 
     // Soarele pulsează (lumina)
     val sunPulse by infinite.animateFloat(
@@ -466,15 +487,55 @@ fun AnimatedSky(
         label = "sunPulse"
     )
 
+    val sunDrift by infinite.animateFloat(
+        initialValue = -0.02f,
+        targetValue = 0.02f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(9000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "sunDrift"
+    )
+
+    val sunRayRotation by infinite.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(46000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "sunRayRotation"
+    )
+
     // Norii se mișcă
     val cloudMove by infinite.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(22000, easing = LinearEasing),
+            animation = tween(cloudDriftDuration, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
         ),
         label = "cloudMove"
+    )
+
+    val cloudBob by infinite.animateFloat(
+        initialValue = -1f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(4200, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "cloudBob"
+    )
+
+    val stormPulse by infinite.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(900, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "stormPulse"
     )
 
     val cloudAlphaBase = (cloudCoverage / 100f).coerceIn(0f, 1f)
@@ -489,40 +550,44 @@ fun AnimatedSky(
 
     val cloudsAlpha = (cloudAlphaBase + stormBoost).coerceIn(0f, 1f)
     val sunAlpha = (1f - cloudAlphaBase * 0.9f).coerceIn(0f, 1f)
+    val hazeAlpha = (((humidity - 60f) / 40f).coerceIn(0f, 1f) * (1f - cloudsAlpha * 0.5f))
 
     Canvas(modifier = Modifier.fillMaxSize()) {
         val w = size.width
         val h = size.height
 
+        drawRect(
+            brush = Brush.verticalGradient(
+                colors = listOf(
+                    Color.White.copy(alpha = 0.18f),
+                    Color.Transparent,
+                    Color.White.copy(alpha = 0.1f)
+                )
+            )
+        )
+
         // 🌞 Sun (sus-stânga) cu glow
         if (sunAlpha > 0.02f) {
-            val center = Offset(w * 0.18f, h * 0.18f)
+            val center = Offset(
+                x = w * (0.18f + sunDrift),
+                y = h * (0.18f + (0.015f * sunDrift))
+            )
             val r = size.minDimension * 0.10f * sunPulse
 
-            drawCircle(
-                brush = Brush.radialGradient(
-                    colors = listOf(
-                        Color(0xFFFFF59D).copy(alpha = 0.55f * sunAlpha),
-                        Color(0xFFFFF59D).copy(alpha = 0.12f * sunAlpha),
-                        Color.Transparent
-                    ),
-                    center = center,
-                    radius = r * 2.8f
-                ),
-                radius = r * 2.8f,
-                center = center
-            )
-
-            drawCircle(
-                color = Color(0xFFFFF59D).copy(alpha = 0.85f * sunAlpha),
+            drawSunWithRays(
+                center = center,
                 radius = r,
-                center = center
+                sunAlpha = sunAlpha,
+                rayRotation = sunRayRotation
             )
         }
 
         // ☁️ Clouds (straturi)
         if (cloudsAlpha > 0.02f) {
-            fun xPos(speed: Float): Float = (-0.25f * w) + (cloudMove * (1.5f * w) * speed)
+            fun xPos(speed: Float): Float {
+                val speedBoost = speed + (windFactor * 0.75f)
+                return (-0.35f * w) + (cloudMove * (1.85f * w) * speedBoost)
+            }
 
             val cloudColor = if (isStormy || pressureTrend == PressureTrend.RAPID_FALL)
                 Color(0xFF90A4AE).copy(alpha = cloudsAlpha * 0.9f)
@@ -531,41 +596,116 @@ fun AnimatedSky(
 
             drawCloudStrip(
                 baseX = xPos(0.60f),
-                baseY = h * 0.22f,
+                baseY = h * (0.20f + cloudBob * 0.01f),
                 scale = 1.2f,
-                color = cloudColor
+                color = cloudColor,
+                wobble = cloudBob
             )
             drawCloudStrip(
                 baseX = xPos(0.90f),
-                baseY = h * 0.34f,
+                baseY = h * (0.33f - cloudBob * 0.012f),
                 scale = 1.5f,
-                color = cloudColor.copy(alpha = cloudColor.alpha * 0.90f)
+                color = cloudColor.copy(alpha = cloudColor.alpha * 0.90f),
+                wobble = -cloudBob
             )
             drawCloudStrip(
                 baseX = xPos(1.15f),
-                baseY = h * 0.48f,
+                baseY = h * (0.47f + cloudBob * 0.009f),
                 scale = 1.8f,
-                color = cloudColor.copy(alpha = cloudColor.alpha * 0.80f)
+                color = cloudColor.copy(alpha = cloudColor.alpha * 0.80f),
+                wobble = cloudBob
+            )
+            drawCloudStrip(
+                baseX = xPos(1.35f),
+                baseY = h * (0.57f - cloudBob * 0.008f),
+                scale = 1.35f,
+                color = cloudColor.copy(alpha = cloudColor.alpha * 0.68f),
+                wobble = -cloudBob
+            )
+        }
+
+        if (hazeAlpha > 0.02f) {
+            drawRect(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = hazeAlpha * 0.18f),
+                        Color.White.copy(alpha = hazeAlpha * 0.08f),
+                        Color.Transparent
+                    ),
+                    startY = h * 0.05f,
+                    endY = h * 0.8f
+                )
+            )
+        }
+
+        if (isStormy) {
+            drawRect(color = Color.White.copy(alpha = 0.05f * stormPulse))
+        }
+    }
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawSunWithRays(
+    center: Offset,
+    radius: Float,
+    sunAlpha: Float,
+    rayRotation: Float
+) {
+    drawCircle(
+        brush = Brush.radialGradient(
+            colors = listOf(
+                Color(0xFFFFF59D).copy(alpha = 0.58f * sunAlpha),
+                Color(0xFFFFE082).copy(alpha = 0.2f * sunAlpha),
+                Color.Transparent
+            ),
+            center = center,
+            radius = radius * 3f
+        ),
+        radius = radius * 3f,
+        center = center
+    )
+
+    for (i in 0 until 12) {
+        rotate(degrees = rayRotation + i * 30f, pivot = center) {
+            drawLine(
+                color = Color(0xFFFFD54F).copy(alpha = 0.28f * sunAlpha),
+                start = Offset(center.x, center.y - radius * 1.45f),
+                end = Offset(center.x, center.y - radius * 2.15f),
+                strokeWidth = radius * 0.12f
             )
         }
     }
+
+    drawCircle(
+        color = Color(0xFFFFF176).copy(alpha = 0.92f * sunAlpha),
+        radius = radius,
+        center = center
+    )
+    drawCircle(
+        color = Color.White.copy(alpha = 0.28f * sunAlpha),
+        radius = radius * 0.55f,
+        center = Offset(center.x - radius * 0.2f, center.y - radius * 0.2f)
+    )
 }
 
 private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawCloudStrip(
     baseX: Float,
     baseY: Float,
     scale: Float,
-    color: Color
+    color: Color,
+    wobble: Float
 ) {
     val r = size.minDimension * 0.06f * scale
     val x = baseX
-    val y = baseY
+    val y = baseY + (r * 0.08f * wobble)
+
+    val shadowColor = Color(0xFF37474F).copy(alpha = color.alpha * 0.12f)
+    val highlightColor = Color.White.copy(alpha = color.alpha * 0.25f)
 
     // “pufuri”
-    drawCircle(color = color, radius = r * 0.9f, center = Offset(x + r * 1.0f, y))
-    drawCircle(color = color, radius = r * 1.1f, center = Offset(x + r * 2.1f, y - r * 0.35f))
-    drawCircle(color = color, radius = r * 0.95f, center = Offset(x + r * 3.3f, y))
-    drawCircle(color = color, radius = r * 0.8f, center = Offset(x + r * 4.2f, y + r * 0.1f))
+    drawCircle(color = color, radius = r * 0.95f, center = Offset(x + r * 1.0f, y))
+    drawCircle(color = color, radius = r * 1.15f, center = Offset(x + r * 2.1f, y - r * 0.35f))
+    drawCircle(color = color, radius = r * 1.0f, center = Offset(x + r * 3.3f, y))
+    drawCircle(color = color, radius = r * 0.85f, center = Offset(x + r * 4.3f, y + r * 0.1f))
 
     // “corp” (oval)
     drawRoundRect(
@@ -573,6 +713,20 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawCloudStrip(
         topLeft = Offset(x + r * 0.6f, y),
         size = Size(width = r * 4.0f, height = r * 1.4f),
         cornerRadius = androidx.compose.ui.geometry.CornerRadius(r, r)
+    )
+
+    // umbre + highlight pentru volum
+    drawRoundRect(
+        color = shadowColor,
+        topLeft = Offset(x + r * 0.8f, y + r * 0.8f),
+        size = Size(width = r * 3.6f, height = r * 0.65f),
+        cornerRadius = androidx.compose.ui.geometry.CornerRadius(r, r)
+    )
+
+    drawCircle(
+        color = highlightColor,
+        radius = r * 0.48f,
+        center = Offset(x + r * 1.55f, y - r * 0.24f)
     )
 }
 

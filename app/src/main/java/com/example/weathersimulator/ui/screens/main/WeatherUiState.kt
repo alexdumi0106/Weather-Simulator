@@ -6,7 +6,15 @@ data class WeatherUiState(
     val isLoading: Boolean = false,
     val data: OpenMeteoResponse? = null,
     val hourlyForecast: List<HourlyForecastItemUi> = emptyList(),
+    val dailyForecast: List<DailyForecastItemUi> = emptyList(),
     val error: String? = null
+)
+
+data class DailyForecastItemUi(
+    val dayLabel: String,
+    val maxTemperature: String,
+    val minTemperature: String,
+    val weatherCode: Int
 )
 
 data class HourlyForecastItemUi(

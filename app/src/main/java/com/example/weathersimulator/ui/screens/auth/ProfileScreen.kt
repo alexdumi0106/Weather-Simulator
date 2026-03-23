@@ -12,6 +12,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.CenterAlignedTopAppBar
 
@@ -26,9 +27,15 @@ fun ProfileScreen(
     val state = viewModel.state.collectAsState().value
 
     Scaffold(
+        containerColor = Color.White,
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text("Profile") },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = Color.White,
+                    titleContentColor = Color.Black,
+                    navigationIconContentColor = Color.Black
+                ),
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(

@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.weathersimulator.ui.navigation.Routes
@@ -27,9 +28,15 @@ fun SettingsScreen(navController: NavController) {
     var windUnit by remember { mutableStateOf(WindUnit.KMH) }
 
     Scaffold(
+        containerColor = Color.White,
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text("Settings") },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = Color.White,
+                    titleContentColor = Color.Black,
+                    navigationIconContentColor = Color.Black
+                ),
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(
