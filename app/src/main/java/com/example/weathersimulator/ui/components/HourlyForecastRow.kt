@@ -1,5 +1,6 @@
 package com.example.weathersimulator.ui.components
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -15,7 +16,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import com.example.weathersimulator.R
 import com.example.weathersimulator.ui.screens.main.HourlyForecastItemUi
 
 @Composable
@@ -63,9 +66,10 @@ private fun HourlyForecastCard(item: HourlyForecastItemUi) {
             style = MaterialTheme.typography.bodySmall
         )
 
-        Text(
-            text = weatherCodeToEmoji(item.weatherCode, item.isDay),
-            style = MaterialTheme.typography.titleLarge
+        Image(
+            painter = painterResource(id = weatherCodeToIconRes(item.weatherCode, item.isDay)),
+            contentDescription = "Icon meteo orar",
+            modifier = Modifier.width(30.dp)
         )
 
         Text(
@@ -75,18 +79,18 @@ private fun HourlyForecastCard(item: HourlyForecastItemUi) {
     }
 }
 
-private fun weatherCodeToEmoji(code: Int, isDay: Boolean): String {
+private fun weatherCodeToIconRes(code: Int, isDay: Boolean): Int {
     return when (code) {
-        0 -> if (isDay) "☀" else "🌙"
-        1, 2 -> if (isDay) "🌤" else "🌙☁"
-        3 -> if (isDay) "☁" else "☁🌙"
-        45, 48 -> "🌫"
-        51, 53, 55, 56, 57 -> if (isDay) "🌦" else "🌧🌙"
-        61, 63, 65, 66, 67 -> "🌧"
-        71, 73, 75, 77 -> "❄"
-        80, 81, 82 -> "🌧"
-        85, 86 -> "🌨"
-        95, 96, 99 -> "⛈"
-        else -> if (isDay) "☁" else "☁🌙"
+        0 -> if (isDay) R.drawable.icon_weather_01 else R.drawable.icon_weather_33
+        1, 2 -> if (isDay) R.drawable.icon_weather_02 else R.drawable.icon_weather_34
+        3 -> if (isDay) R.drawable.icon_weather_04 else R.drawable.icon_weather_38
+        45, 48 -> R.drawable.icon_weather_11
+        51, 53, 55, 56, 57 -> if (isDay) R.drawable.icon_weather_39 else R.drawable.icon_weather_40
+        61, 63, 65, 66, 67 -> R.drawable.icon_weather_12
+        71, 73, 75, 77 -> R.drawable.icon_weather_13
+        80, 81, 82 -> R.drawable.icon_weather_39
+        85, 86 -> R.drawable.icon_weather_14
+        95, 96, 99 -> R.drawable.icon_weather_17
+        else -> if (isDay) R.drawable.icon_weather_03 else R.drawable.icon_weather_35
     }
 }

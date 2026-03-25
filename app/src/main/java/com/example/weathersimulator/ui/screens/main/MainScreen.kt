@@ -39,11 +39,16 @@ import com.google.firebase.auth.FirebaseAuth
 import com.example.weathersimulator.ui.components.HourlyForecastRow
 import com.example.weathersimulator.ui.screens.main.HourlyForecastItemUi
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.Image
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
 import com.example.weathersimulator.ui.components.DailyForecastList
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.size
+import com.example.weathersimulator.R
 
 @Composable
 fun WeatherHomeSection(
@@ -100,12 +105,15 @@ fun WeatherHomeSection(
                     )
                 }
 
-                Text(
-                    text = weatherCodeToEmoji(
-                        code = current.weatherCode ?: 0,
-                        isDay = current.isDay == 1
+                Image(
+                    painter = painterResource(
+                        id = weatherCodeToIconRes(
+                            code = current.weatherCode ?: 0,
+                            isDay = current.isDay == 1
+                        )
                     ),
-                    style = MaterialTheme.typography.displayMedium
+                    contentDescription = "Stare meteo curenta",
+                    modifier = Modifier.size(64.dp)
                 )
             }
 
@@ -244,26 +252,26 @@ fun MainScreen(navController: NavController) {
     }
 }
 
-private fun weatherCodeToEmoji(code: Int, isDay: Boolean): String {
+private fun weatherCodeToIconRes(code: Int, isDay: Boolean): Int {
     return when (code) {
-        0 -> if (isDay) "☀" else "🌙"
-        1, 2 -> if (isDay) "🌤" else "🌙☁"
-        3 -> if (isDay) "☁" else "☁🌙"
-        45, 48 -> "🌫"
-        51, 53, 55, 56, 57 -> if (isDay) "🌦" else "🌧🌙"
-        61, 63, 65, 66, 67 -> "🌧"
-        71, 73, 75, 77 -> "❄"
-        80, 81, 82 -> "🌧"
-        85, 86 -> "🌨"
-        95, 96, 99 -> "⛈"
-        else -> if (isDay) "☁" else "☁🌙"
+        0 -> if (isDay) R.drawable.icon_weather_01 else R.drawable.icon_weather_33
+        1, 2 -> if (isDay) R.drawable.icon_weather_02 else R.drawable.icon_weather_34
+        3 -> if (isDay) R.drawable.icon_weather_04 else R.drawable.icon_weather_38
+        45, 48 -> R.drawable.icon_weather_11
+        51, 53, 55, 56, 57 -> if (isDay) R.drawable.icon_weather_14 else R.drawable.icon_weather_39
+        61, 63, 65, 66, 67 -> R.drawable.icon_weather_18
+        71, 73, 75, 77 -> R.drawable.icon_weather_13
+        80, 81, 82 -> R.drawable.icon_weather_14
+        85, 86 -> R.drawable.icon_weather_14
+        95, 96, 99 -> R.drawable.icon_weather_17
+        else -> if (isDay) R.drawable.icon_weather_03 else R.drawable.icon_weather_35
     }
 }
 
 private fun currentWeatherLabel(code: Int, isDay: Boolean): String {
     return when (code) {
-        0 -> if (isDay) "Cer senin" else "Noapte senină"
-        1 -> if (isDay) "Mai mult senin" else "Noapte mai mult senină"
+        0 -> if (isDay) "Senin" else "Senin"
+        1 -> if (isDay) "Predominant însorit" else "Predominant senin"
         2 -> "Parțial noros"
         3 -> "Înnorat"
         45, 48 -> "Ceață"

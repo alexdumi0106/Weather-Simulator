@@ -62,6 +62,7 @@ import kotlin.math.sin
 import kotlin.math.PI
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.Fill
@@ -70,6 +71,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathFillType
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.weathersimulator.sensors.pressure.PressureTrend
 import com.example.weathersimulator.sensors.pressure.PressureViewModel
@@ -99,32 +101,32 @@ private fun computeWeatherDescription(
     pressure: Float,
     wind: Float,
     cloudCoverage: Float
-): Pair<String, String> {
+): Pair<Int, String> {
     val cc = (cloudCoverage / 20f).roundToInt() * 20f
     return when {
         humidity > 95 && pressure < 1010 && temperature in 0f..15f ->
-            "🌫️" to "Ceață"
+            R.drawable.icon_weather_11 to "Ceață"
 
         temperature < 0 && humidity > 70 ->
-            "🌨️" to "Ninsoare"
+            R.drawable.icon_weather_22 to "Ninsoare"
 
         humidity > 90 && wind >= 50 && pressure < 1000 && cloudCoverage > 60->
-            "⛈️" to "Furtună"
+            R.drawable.icon_weather_17 to "Furtună"
 
         humidity > 70 && wind >= 40 && pressure in 995f..1005f && temperature > 20 && cloudCoverage in 20f..60f ->
-            "🌦️" to "Furtună cu soare"
+            R.drawable.icon_weather_16 to "Furtună cu soare"
 
         humidity > 85 && pressure < 1005 && cloudCoverage >= 80 ->
-            "🌧️" to "Ploaie"
+            R.drawable.icon_weather_12 to "Ploaie"
 
-        cc == 0f   -> "☀️" to "Însorit"
-        cc == 20f  -> "🌤️" to "Predominant însorit"
-        cc == 40f  -> "⛅"  to "Parțial însorit"
-        cc == 60f  -> "🌥️" to "Nori și soare"
-        cc == 80f  -> "🌥️" to "Predominant noros"
-        cc == 100f -> "☁️" to "Noros"
+        cc == 0f   -> R.drawable.icon_weather_01 to "Însorit"
+        cc == 20f  -> R.drawable.icon_weather_02 to "Predominant însorit"
+        cc == 40f  -> R.drawable.icon_weather_03 to "Parțial însorit"
+        cc == 60f  -> R.drawable.icon_weather_04 to "Nori și soare"
+        cc == 80f  -> R.drawable.icon_weather_06 to "Predominant noros"
+        cc == 100f -> R.drawable.icon_weather_07 to "Noros"
 
-        else -> "🌦️" to "Condiții variabile"
+        else -> R.drawable.icon_weather_39 to "Condiții variabile"
     }
 }
 
@@ -161,7 +163,7 @@ fun SimulatorScreen(
     var useBarometer by remember { mutableStateOf(true) }
 
     // derivăm condiția meteo din valorile actuale
-    val (iconNow, descriptionNow) = remember(temperature, humidity, pressure, wind, cloudCoverage) {
+    val (_, descriptionNow) = remember(temperature, humidity, pressure, wind, cloudCoverage) {
         computeWeatherDescription(temperature, humidity, pressure, wind, cloudCoverage)
     }
     val sensorPressure = pressureSensorState.pressureHpa
@@ -433,7 +435,7 @@ fun WeatherDisplayCard(
     wind: Float,
     cloudCoverage: Float
 ) {
-    val (icon, description) = remember(temperature, humidity, pressure, wind, cloudCoverage) {
+    val (iconRes, description) = remember(temperature, humidity, pressure, wind, cloudCoverage) {
         computeWeatherDescription(temperature, humidity, pressure, wind, cloudCoverage)
     }
 
@@ -453,7 +455,11 @@ fun WeatherDisplayCard(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(text = icon, fontSize = 56.sp)
+            Image(
+                painter = painterResource(id = iconRes),
+                contentDescription = description,
+                modifier = Modifier.size(72.dp)
+            )
             Spacer(modifier = Modifier.height(12.dp))
             Text(
                 text = description,
