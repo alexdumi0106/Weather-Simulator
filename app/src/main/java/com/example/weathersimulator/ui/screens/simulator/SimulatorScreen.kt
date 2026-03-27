@@ -458,7 +458,7 @@ fun WeatherDisplayCard(
             Image(
                 painter = painterResource(id = iconRes),
                 contentDescription = description,
-                modifier = Modifier.size(72.dp)
+                modifier = Modifier.size(98.dp)
             )
             Spacer(modifier = Modifier.height(12.dp))
             Text(

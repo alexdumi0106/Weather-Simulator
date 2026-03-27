@@ -14,12 +14,15 @@ data class DailyForecastItemUi(
     val dayLabel: String,
     val maxTemperature: String,
     val minTemperature: String,
-    val weatherCode: Int
+    val weatherCode: Int,
+    val cloudCover: Int,
+    val isDay: Boolean = true
 )
 
 data class HourlyForecastItemUi(
     val time: String,
     val temperature: String,
     val weatherCode: Int,
-    val isDay: Boolean
+    val isDay: Boolean,
+    val cloudCover: Int
 )

@@ -27,6 +27,9 @@ data class CurrentDto(
     @SerializedName("weather_code")
     val weatherCode: Int? = null,
 
+    @SerializedName("cloud_cover")
+    val cloudCover: Int? = null,
+
     @SerializedName("wind_speed_10m")
     val windSpeed: Double? = null,
 
@@ -47,6 +50,9 @@ data class HourlyDto(
 
     @SerializedName("weather_code")
     val weatherCode: List<Int> = emptyList(),
+
+    @SerializedName("cloud_cover")
+    val cloudCover: List<Int> = emptyList(),
 
     @SerializedName("wind_speed_10m")
     val windSpeed: List<Double> = emptyList(),

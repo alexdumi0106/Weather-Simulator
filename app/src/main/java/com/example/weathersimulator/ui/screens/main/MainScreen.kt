@@ -1,21 +1,21 @@
 package com.example.weathersimulator.ui.screens.main
 
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
-import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -26,104 +26,132 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.example.weathersimulator.R
 import com.example.weathersimulator.data.remote.weather.OpenMeteoResponse
+import com.example.weathersimulator.ui.components.DailyForecastList
+import com.example.weathersimulator.ui.components.HourlyForecastRow
 import com.example.weathersimulator.ui.components.PrimaryActionButton
 import com.example.weathersimulator.ui.components.SecondaryActionButton
 import com.example.weathersimulator.ui.navigation.Routes
 import com.example.weathersimulator.ui.sensors.location.LocationViewModel
+import com.example.weathersimulator.ui.weather.WeatherIconRules
 import com.google.firebase.auth.FirebaseAuth
-import com.example.weathersimulator.ui.components.HourlyForecastRow
-import com.example.weathersimulator.ui.screens.main.HourlyForecastItemUi
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.Image
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.unit.dp
-import com.example.weathersimulator.ui.components.DailyForecastList
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.layout.size
-import com.example.weathersimulator.R
 
 @Composable
 fun WeatherHomeSection(
+    locationName: String,
     isLoading: Boolean,
     error: String?,
     data: OpenMeteoResponse?,
     hourlyForecast: List<HourlyForecastItemUi>,
     dailyForecast: List<DailyForecastItemUi>
 ) {
+    val cityName = locationName.substringBefore(",").ifBlank { "Locatia ta" }
+
     if (isLoading) {
-        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+        LinearProgressIndicator(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(MaterialTheme.shapes.small),
+            color = Color(0xFFBEE7FF),
+            trackColor = Color.White.copy(alpha = 0.2f)
+        )
         Spacer(Modifier.height(8.dp))
     }
 
     if (error != null) {
-        Text(text = "Eroare meteo: $error")
+        Text(
+            text = "Eroare meteo: $error",
+            color = Color.White,
+            style = MaterialTheme.typography.bodyLarge
+        )
         Spacer(Modifier.height(8.dp))
         return
     }
 
     val current = data?.current ?: return
+    val today = dailyForecast.firstOrNull()
+    val weatherVisual = WeatherIconRules.resolve(
+        weatherCode = current.weatherCode ?: 0,
+        isDay = current.isDay == 1,
+        cloudCover = current.cloudCover
+    )
 
-    Card(
-        modifier = Modifier.fillMaxWidth()
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+        Text(
+            text = cityName,
+            color = Color.White,
+            style = MaterialTheme.typography.headlineLarge.copy(
+                fontWeight = FontWeight.Medium,
+                fontSize = 52.sp
+            ),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+
+        Text(
+            text = "${current.temperature?.toInt() ?: "--"}°",
+            color = Color.White,
+            style = MaterialTheme.typography.displayLarge.copy(
+                fontWeight = FontWeight.Light,
+                fontSize = 90.sp,
+                letterSpacing = (-2).sp
+            )
+        )
+
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = "Acum",
-                style = MaterialTheme.typography.titleMedium
+            Image(
+                painter = painterResource(
+                    id = weatherVisual.iconRes
+                ),
+                contentDescription = "Icon meteo",
+                modifier = Modifier.size(34.dp)
             )
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Text(
-                        text = "${current.temperature?.toInt() ?: "--"}°C",
-                        style = MaterialTheme.typography.displaySmall
-                    )
-
-                    Text(
-                        text = currentWeatherLabel(
-                            code = current.weatherCode ?: 0,
-                            isDay = current.isDay == 1
-                        ),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-
-                Image(
-                    painter = painterResource(
-                        id = weatherCodeToIconRes(
-                            code = current.weatherCode ?: 0,
-                            isDay = current.isDay == 1
-                        )
-                    ),
-                    contentDescription = "Stare meteo curenta",
-                    modifier = Modifier.size(64.dp)
-                )
-            }
-
-            Text(text = "Feels like: ${current.apparentTemperature?.toInt() ?: "--"}°C")
-            Text(text = "Wind: ${current.windSpeed?.toInt() ?: "--"} km/h • Humidity: ${current.humidity ?: "--"}%")
-            Text(text = "Pressure: ${current.pressure?.toInt() ?: "--"} hPa")
+            Text(
+                text = weatherVisual.label,
+                color = Color.White.copy(alpha = 0.96f),
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold)
+            )
         }
+
+        Text(
+            text = buildString {
+                append("Temperatura resimtita: ${current.apparentTemperature?.toInt() ?: "--"}°")
+                if (today != null) {
+                    append("  Max: ${today.maxTemperature}  Min: ${today.minTemperature}")
+                }
+            },
+            color = Color.White.copy(alpha = 0.86f),
+            style = MaterialTheme.typography.titleMedium,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 
-    Spacer(Modifier.height(12.dp))
+    Spacer(Modifier.height(16.dp))
 
     HourlyForecastRow(
         items = hourlyForecast,
@@ -139,7 +167,6 @@ fun WeatherHomeSection(
 }
 
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(navController: NavController) {
 
@@ -163,68 +190,78 @@ fun MainScreen(navController: NavController) {
     }
 
     var showDialog by remember { mutableStateOf(false) }
+    val baseBackground = weatherBackground(
+        code = weatherState.data?.current?.weatherCode ?: 0,
+        isDay = weatherState.data?.current?.isDay == 1
+    )
+
     Scaffold(
-        containerColor = Color.White,
-        topBar = {
-            Column {
-                CenterAlignedTopAppBar(
-                    title = { Text("Weather Simulator AI") },
-                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                        containerColor = Color.White,
-                        titleContentColor = Color.Black
-                    )
-                )
-                val label = s.placeName ?: "Determin locația..."
-                Text(
-                    text = label,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                    color = Color.Black
-                )
-            }
-        }
+        containerColor = Color.Transparent
     ) { padding ->
-        Column(
+        Box(
             modifier = Modifier
-                .padding(padding)
-                .padding(16.dp)
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .background(Brush.verticalGradient(baseBackground))
         ) {
-
-            WeatherHomeSection(
-                isLoading = weatherState.isLoading,
-                error = weatherState.error,
-                data = weatherState.data,
-                hourlyForecast = weatherState.hourlyForecast,
-                dailyForecast = weatherState.dailyForecast
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(
+                                Color.Transparent,
+                                Color(0x4D0C1A2E),
+                                Color(0xB30A1528)
+                            )
+                        )
+                    )
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Column(
+                modifier = Modifier
+                    .padding(padding)
+                    .padding(horizontal = 16.dp, vertical = 14.dp)
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                WeatherHomeSection(
+                    locationName = s.placeName ?: "Locatia ta",
+                    isLoading = weatherState.isLoading,
+                    error = weatherState.error,
+                    data = weatherState.data,
+                    hourlyForecast = weatherState.hourlyForecast,
+                    dailyForecast = weatherState.dailyForecast
+                )
 
-            PrimaryActionButton(
-                text = "Weather Simulation",
-                onClick = { navController.navigate(Routes.SIMULATOR) },
-                modifier = Modifier.fillMaxWidth()
-            )
+                Spacer(modifier = Modifier.height(8.dp))
 
-            SecondaryActionButton(
-                text = "Settings",
-                onClick = { navController.navigate(Routes.SETTINGS) },
-                modifier = Modifier.fillMaxWidth()
-            )
+                PrimaryActionButton(
+                    text = "Weather Simulation",
+                    onClick = { navController.navigate(Routes.SIMULATOR) },
+                    modifier = Modifier.fillMaxWidth()
+                )
 
-            SecondaryActionButton(
-                text = "Profile",
-                onClick = { navController.navigate(Routes.PROFILE) },
-                modifier = Modifier.fillMaxWidth()
-            )
+                SecondaryActionButton(
+                    text = "Settings",
+                    onClick = { navController.navigate(Routes.SETTINGS) },
+                    modifier = Modifier.fillMaxWidth()
+                )
 
-            SecondaryActionButton(
-                text = "Logout",
-                onClick = { showDialog = true },
-                modifier = Modifier.fillMaxWidth()
-            )
+                SecondaryActionButton(
+                    text = "Profile",
+                    onClick = { navController.navigate(Routes.PROFILE) },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                SecondaryActionButton(
+                    text = "Logout",
+                    onClick = { showDialog = true },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(20.dp))
+            }
 
             if (showDialog) {
                 AlertDialog(
@@ -252,35 +289,32 @@ fun MainScreen(navController: NavController) {
     }
 }
 
-private fun weatherCodeToIconRes(code: Int, isDay: Boolean): Int {
-    return when (code) {
-        0 -> if (isDay) R.drawable.icon_weather_01 else R.drawable.icon_weather_33
-        1, 2 -> if (isDay) R.drawable.icon_weather_02 else R.drawable.icon_weather_34
-        3 -> if (isDay) R.drawable.icon_weather_04 else R.drawable.icon_weather_38
-        45, 48 -> R.drawable.icon_weather_11
-        51, 53, 55, 56, 57 -> if (isDay) R.drawable.icon_weather_14 else R.drawable.icon_weather_39
-        61, 63, 65, 66, 67 -> R.drawable.icon_weather_18
-        71, 73, 75, 77 -> R.drawable.icon_weather_13
-        80, 81, 82 -> R.drawable.icon_weather_14
-        85, 86 -> R.drawable.icon_weather_14
-        95, 96, 99 -> R.drawable.icon_weather_17
-        else -> if (isDay) R.drawable.icon_weather_03 else R.drawable.icon_weather_35
+private fun weatherBackground(code: Int, isDay: Boolean): List<Color> {
+    if (!isDay) {
+        return listOf(
+            Color(0xFF0F1D35),
+            Color(0xFF182A45),
+            Color(0xFF243852)
+        )
     }
-}
 
-private fun currentWeatherLabel(code: Int, isDay: Boolean): String {
     return when (code) {
-        0 -> if (isDay) "Senin" else "Senin"
-        1 -> if (isDay) "Predominant însorit" else "Predominant senin"
-        2 -> "Parțial noros"
-        3 -> "Înnorat"
-        45, 48 -> "Ceață"
-        51, 53, 55, 56, 57 -> "Burniță"
-        61, 63, 65, 66, 67 -> "Ploaie"
-        71, 73, 75, 77 -> "Ninsoare"
-        80, 81, 82 -> "Averse"
-        85, 86 -> "Averse de ninsoare"
-        95, 96, 99 -> "Furtună"
-        else -> "Vreme necunoscută"
+        61, 63, 65, 66, 67, 80, 81, 82, 95, 96, 99 -> listOf(
+            Color(0xFF425E7D),
+            Color(0xFF5E7593),
+            Color(0xFF7A8FAA)
+        )
+
+        45, 48 -> listOf(
+            Color(0xFF6E8499),
+            Color(0xFF8097AC),
+            Color(0xFF9BB0C3)
+        )
+
+        else -> listOf(
+            Color(0xFF3D6FA6),
+            Color(0xFF5E88BB),
+            Color(0xFF86A7CF)
+        )
     }
 }

@@ -9,6 +9,7 @@ import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import javax.inject.Singleton
+import java.util.concurrent.TimeUnit
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -17,7 +18,13 @@ object WeatherModule {
     @Provides
     @Singleton
     fun provideOpenMeteoApi(): OpenMeteoApi {
-        val client = OkHttpClient.Builder().build()
+        val client = OkHttpClient.Builder()
+            .connectTimeout(20, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .writeTimeout(20, TimeUnit.SECONDS)
+            .callTimeout(35, TimeUnit.SECONDS)
+            .retryOnConnectionFailure(true)
+            .build()
 
         return Retrofit.Builder()
             .baseUrl("https://api.open-meteo.com/")
