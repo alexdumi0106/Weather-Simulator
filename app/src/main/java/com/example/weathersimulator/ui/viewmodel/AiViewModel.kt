@@ -46,13 +46,36 @@ class AiViewModel @Inject constructor(
         if (prompt.isEmpty()) return
 
         viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, error = null) }
+            _state.update {
+                it.copy(
+                    isLoading = true,
+                    error = null,
+                    prompt = "",
+                    messages = it.messages + ChatMessage(
+                        id = System.nanoTime(),
+                        text = prompt,
+                        isFromUser = true
+                    )
+                )
+            }
             try {
                 val ans = generateAiResponse(prompt, url)
-                _state.update { it.copy(isLoading = false, answer = ans) }
+                _state.update {
+                    it.copy(
+                        isLoading = false,
+                        messages = it.messages + ChatMessage(
+                            id = System.nanoTime(),
+                            text = ans,
+                            isFromUser = false
+                        )
+                    )
+                }
             } catch (e: Exception) {
                 _state.update {
-                    it.copy(isLoading = false, error = e.message ?: "AI request failed")
+                    it.copy(
+                        isLoading = false,
+                        error = e.message ?: "AI request failed"
+                    )
                 }
             }
         }

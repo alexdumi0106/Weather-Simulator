@@ -18,7 +18,7 @@ object WeatherIconRules {
                 return if (hasSomeClearSky) {
                     WeatherVisual(
                         iconRes = if (isDay) R.drawable.icon_weather_16 else R.drawable.icon_weather_42,
-                        label = if (isDay) "Furtuna cu soare" else "Furtuna cu senin"
+                        label = if (isDay) "Furtuna" else "Furtuna"
                     )
                 } else {
                     WeatherVisual(
@@ -97,17 +97,17 @@ object WeatherIconRules {
 
             in 11..30 -> WeatherVisual(
                 iconRes = if (isDay) R.drawable.icon_weather_02 else R.drawable.icon_weather_34,
-                label = "Predominant insorit"
+                label = if (isDay) "Predominant insorit" else "Predominant senin"
             )
 
             in 31..50 -> WeatherVisual(
                 iconRes = if (isDay) R.drawable.icon_weather_03 else R.drawable.icon_weather_35,
-                label = "Partial insorit"
+                label = if (isDay) "Parcial insorit" else "Parțial noros"
             )
 
             in 51..70 -> WeatherVisual(
                 iconRes = if (isDay) R.drawable.icon_weather_04 else R.drawable.icon_weather_36,
-                label = "Nori si soare"
+                label = if (isDay) "Nori si soare" else "Parțial spre predominant noros"
             )
 
             in 71..90 -> WeatherVisual(

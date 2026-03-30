@@ -111,13 +111,13 @@ private fun computeWeatherDescription(
             R.drawable.icon_weather_22 to "Ninsoare"
 
         humidity > 90 && wind >= 50 && pressure < 1000 && cloudCoverage > 60->
-            R.drawable.icon_weather_17 to "Furtună"
+            R.drawable.icon_weather_15 to "Furtună"
 
         humidity > 70 && wind >= 40 && pressure in 995f..1005f && temperature > 20 && cloudCoverage in 20f..60f ->
             R.drawable.icon_weather_16 to "Furtună cu soare"
 
         humidity > 85 && pressure < 1005 && cloudCoverage >= 80 ->
-            R.drawable.icon_weather_12 to "Ploaie"
+            R.drawable.icon_weather_18 to "Ploaie"
 
         cc == 0f   -> R.drawable.icon_weather_01 to "Însorit"
         cc == 20f  -> R.drawable.icon_weather_02 to "Predominant însorit"
