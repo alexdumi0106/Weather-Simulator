@@ -7,12 +7,20 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -27,6 +35,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
@@ -41,8 +50,7 @@ import com.example.weathersimulator.R
 import com.example.weathersimulator.data.remote.weather.OpenMeteoResponse
 import com.example.weathersimulator.ui.components.DailyForecastList
 import com.example.weathersimulator.ui.components.HourlyForecastRow
-import com.example.weathersimulator.ui.components.PrimaryActionButton
-import com.example.weathersimulator.ui.components.SecondaryActionButton
+import com.example.weathersimulator.ui.components.WeatherDetailsGrid
 import com.example.weathersimulator.ui.navigation.Routes
 import com.example.weathersimulator.ui.sensors.location.LocationViewModel
 import com.example.weathersimulator.ui.weather.WeatherIconRules
@@ -59,7 +67,9 @@ fun WeatherHomeSection(
     error: String?,
     data: OpenMeteoResponse?,
     hourlyForecast: List<HourlyForecastItemUi>,
-    dailyForecast: List<DailyForecastItemUi>
+    dailyForecast: List<DailyForecastItemUi>,
+    latitude: Double = 0.0,
+    longitude: Double = 0.0
 ) {
     val cityName = locationName.substringBefore(",").ifBlank { "Locatia ta" }
 
@@ -102,7 +112,7 @@ fun WeatherHomeSection(
             color = Color.White,
             style = MaterialTheme.typography.headlineLarge.copy(
                 fontWeight = FontWeight.Medium,
-                fontSize = 52.sp
+                fontSize = 30.sp
             ),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
@@ -127,7 +137,7 @@ fun WeatherHomeSection(
                     id = weatherVisual.iconRes
                 ),
                 contentDescription = "Icon meteo",
-                modifier = Modifier.size(34.dp)
+                modifier = Modifier.size(100.dp)
             )
 
             Text(
@@ -138,17 +148,18 @@ fun WeatherHomeSection(
         }
 
         Text(
-            text = buildString {
-                append("Temperatura resimtita: ${current.apparentTemperature?.toInt() ?: "--"}°")
-                if (today != null) {
-                    append("  Max: ${today.maxTemperature}  Min: ${today.minTemperature}")
-                }
-            },
+            text = "Temperatura resimtita: ${current.apparentTemperature?.toInt() ?: "--"}°",
             color = Color.White.copy(alpha = 0.86f),
-            style = MaterialTheme.typography.titleMedium,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
+            style = MaterialTheme.typography.titleMedium
         )
+
+        if (today != null) {
+            Text(
+                text = "Max: ${today.maxTemperature}  Min: ${today.minTemperature}",
+                color = Color.White.copy(alpha = 0.86f),
+                style = MaterialTheme.typography.titleMedium
+            )
+        }
     }
 
     Spacer(Modifier.height(16.dp))
@@ -162,6 +173,15 @@ fun WeatherHomeSection(
 
     DailyForecastList(
         items = dailyForecast,
+        modifier = Modifier.fillMaxWidth()
+    )
+
+    Spacer(Modifier.height(16.dp))
+
+    WeatherDetailsGrid(
+        data = data,
+        latitude = latitude,
+        longitude = longitude,
         modifier = Modifier.fillMaxWidth()
     )
 }
@@ -190,6 +210,7 @@ fun MainScreen(navController: NavController) {
     }
 
     var showDialog by remember { mutableStateOf(false) }
+    var showSettingsMenu by remember { mutableStateOf(false) }
     val baseBackground = weatherBackground(
         code = weatherState.data?.current?.weatherCode ?: 0,
         isDay = weatherState.data?.current?.isDay == 1
@@ -231,36 +252,79 @@ fun MainScreen(navController: NavController) {
                     error = weatherState.error,
                     data = weatherState.data,
                     hourlyForecast = weatherState.hourlyForecast,
-                    dailyForecast = weatherState.dailyForecast
+                    dailyForecast = weatherState.dailyForecast,
+                    latitude = s.lat ?: 0.0,
+                    longitude = s.lon ?: 0.0
                 )
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(110.dp))
+            }
 
-                PrimaryActionButton(
-                    text = "Weather Simulation",
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight()
+                    .padding(horizontal = 16.dp, vertical = 14.dp)
+            ) {
+                Box(modifier = Modifier.align(Alignment.TopEnd)) {
+                    FloatingActionButton(
+                        onClick = { showSettingsMenu = true },
+                        modifier = Modifier.size(58.dp),
+                        shape = CircleShape,
+                        containerColor = Color(0xFF2C4E73),
+                        contentColor = Color.White,
+                        elevation = FloatingActionButtonDefaults.elevation(
+                            defaultElevation = 6.dp,
+                            pressedElevation = 10.dp
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Settings,
+                            contentDescription = "Setari"
+                        )
+                    }
+
+                    DropdownMenu(
+                        expanded = showSettingsMenu,
+                        onDismissRequest = { showSettingsMenu = false },
+                        modifier = Modifier.background(Color(0xFF244263))
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Profil", color = Color.White) },
+                            onClick = {
+                                showSettingsMenu = false
+                                navController.navigate(Routes.PROFILE)
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Logout", color = Color.White) },
+                            onClick = {
+                                showSettingsMenu = false
+                                showDialog = true
+                            }
+                        )
+                    }
+                }
+
+                FloatingActionButton(
                     onClick = { navController.navigate(Routes.SIMULATOR) },
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                SecondaryActionButton(
-                    text = "Settings",
-                    onClick = { navController.navigate(Routes.SETTINGS) },
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                SecondaryActionButton(
-                    text = "Profile",
-                    onClick = { navController.navigate(Routes.PROFILE) },
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                SecondaryActionButton(
-                    text = "Logout",
-                    onClick = { showDialog = true },
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Spacer(modifier = Modifier.height(20.dp))
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .size(68.dp),
+                    shape = CircleShape,
+                    containerColor = Color(0xFF5A83B4),
+                    contentColor = Color.White,
+                    elevation = FloatingActionButtonDefaults.elevation(
+                        defaultElevation = 6.dp,
+                        pressedElevation = 10.dp
+                    )
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_robot),
+                        contentDescription = "Weather Simulation",
+                        modifier = Modifier.size(30.dp)
+                    )
+                }
             }
 
             if (showDialog) {

@@ -38,6 +38,13 @@ fun HourlyForecastRow(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
+        Text(
+            text = "PROGNOZA PE ORE",
+            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+            color = Color.White.copy(alpha = 0.8f),
+            modifier = Modifier.padding(horizontal = 6.dp)
+        )
+
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -46,13 +53,6 @@ fun HourlyForecastRow(
                 .padding(top = 12.dp, bottom = 14.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Text(
-                text = "PROGNOZA PE ORE",
-                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
-                color = Color.White.copy(alpha = 0.8f),
-                modifier = Modifier.padding(horizontal = 16.dp)
-            )
-
             LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 contentPadding = PaddingValues(horizontal = 12.dp)
