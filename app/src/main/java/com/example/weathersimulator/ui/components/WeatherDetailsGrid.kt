@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.sp
 import com.example.weathersimulator.data.remote.weather.OpenMeteoResponse
 import java.util.Calendar
 import java.util.Locale
+import kotlin.math.roundToInt
 import kotlin.math.asin
 import kotlin.math.atan
 import kotlin.math.acos
@@ -60,8 +61,8 @@ fun WeatherDetailsGrid(
         ) {
             WeatherDetailCard(
                 title = "TEMPERATURĂ RESIMȚITĂ",
-                value = "${current.apparentTemperature?.toInt() ?: "--"}°",
-                subtitle = "Acum: ${current.temperature?.toInt() ?: "--"}°",
+                value = "${current.apparentTemperature?.roundToInt() ?: "--"}°",
+                subtitle = "Acum: ${current.temperature?.roundToInt() ?: "--"}°",
                 modifier = Modifier.weight(1f)
             )
 
@@ -160,12 +161,12 @@ private fun WeatherDetailCard(
 
 // Calcul pentru punctul de roua (formula aproximativă)
 private fun calculateDewPoint(temp: Double, humidity: Int): Int {
-    if (humidity <= 0) return temp.toInt()
+    if (humidity <= 0) return temp.roundToInt()
     val a = 17.27
     val b = 237.7
     val alpha = ((a * temp) / (b + temp)) + ln(humidity / 100.0)
     val dewPoint = (b * alpha) / (a - alpha)
-    return dewPoint.toInt()
+    return dewPoint.roundToInt()
 }
 
 private data class MoonPhaseInfo(

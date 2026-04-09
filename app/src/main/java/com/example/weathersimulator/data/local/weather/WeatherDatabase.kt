@@ -1,4 +1,4 @@
-package com.example.weathersimulator.data.local
+package com.example.weathersimulator.data.local.weather
 
 import androidx.room.Database
 import androidx.room.RoomDatabase

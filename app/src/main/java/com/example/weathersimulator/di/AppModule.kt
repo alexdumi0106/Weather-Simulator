@@ -2,8 +2,9 @@ package com.example.weathersimulator.di
 
 import android.content.Context
 import androidx.room.Room
-import com.example.weathersimulator.data.local.WeatherDatabase
 import com.example.weathersimulator.data.local.user.UserDao
+import com.example.weathersimulator.data.local.weather.WeatherDatabase
+import com.example.weathersimulator.data.local.weather.WeatherCsvReader
 import com.example.weathersimulator.data.repository.UserRepository
 import com.example.weathersimulator.domain.usecase.LoginUserUseCase
 import com.example.weathersimulator.domain.usecase.RegisterUserUseCase
@@ -37,6 +38,12 @@ object AppModule {
 
     @Provides
     fun provideUserDao(db: WeatherDatabase): UserDao = db.userDao()
+
+    @Provides
+    @Singleton
+    fun provideWeatherCsvReader(
+        @ApplicationContext context: Context
+    ): WeatherCsvReader = WeatherCsvReader(context)
 
     @Provides
     @Singleton

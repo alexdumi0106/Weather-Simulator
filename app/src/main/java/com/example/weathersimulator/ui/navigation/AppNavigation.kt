@@ -14,6 +14,14 @@ import com.example.weathersimulator.ui.screens.settings.SettingsScreen
 import com.example.weathersimulator.ui.screens.simulator.SimulatorScreen
 import com.google.firebase.auth.FirebaseAuth
 import com.example.weathersimulator.ui.screens.simulator.AiSimulationScreen
+import com.example.weathersimulator.ui.screens.main.WeatherHistoryScreen
+import com.example.weathersimulator.ui.screens.main.WeatherHistoryDayScreen
+import androidx.activity.ComponentActivity
+import androidx.compose.ui.platform.LocalContext
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import com.example.weathersimulator.ui.screens.main.WeatherViewModel
 
 
 @Composable
@@ -48,6 +56,45 @@ fun AppNavigation() {
         composable(Routes.MAIN) {
             WeatherSimulatorTheme(darkTheme = false, dynamicColor = false) {
                 MainScreen(navController)
+            }
+        }
+
+        composable(Routes.WEATHER_HISTORY_ROUTE) {
+            val activity = LocalContext.current as ComponentActivity
+            val weatherVm: WeatherViewModel = hiltViewModel(activity)
+            val state by weatherVm.state.collectAsState()
+
+            WeatherSimulatorTheme(darkTheme = false, dynamicColor = false) {
+                WeatherHistoryScreen(
+                    state = state,
+                    onBackClick = {
+                        weatherVm.setHistoryMode(false)
+                        navController.popBackStack()
+                    },
+                    onLoadHistory = { weatherVm.loadHistorical() },
+                    onMonthSelected = { monthKey ->
+                        weatherVm.selectHistoryMonth(monthKey)
+                    },
+                    onOpenSelectedDay = {
+                        navController.navigate(Routes.WEATHER_HISTORY_DAY_ROUTE)
+                    }
+                )
+            }
+        }
+
+        composable(Routes.WEATHER_HISTORY_DAY_ROUTE) {
+            val activity = LocalContext.current as ComponentActivity
+            val weatherVm: WeatherViewModel = hiltViewModel(activity)
+            val state by weatherVm.state.collectAsState()
+
+            WeatherSimulatorTheme(darkTheme = false, dynamicColor = false) {
+                WeatherHistoryDayScreen(
+                    state = state,
+                    onBackClick = { navController.popBackStack() },
+                    onDaySelected = { dayKey ->
+                        weatherVm.selectHistoryDay(dayKey)
+                    }
+                )
             }
         }
 

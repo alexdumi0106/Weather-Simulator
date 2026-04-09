@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.weathersimulator.data.remote.weather.CurrentDto
+import kotlin.math.roundToInt
 
 @Composable
 fun CurrentWeatherCard(
@@ -52,7 +53,7 @@ fun CurrentWeatherCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "${weather.temperature?.toInt() ?: "--"}°C",
+                    text = "${weather.temperature?.roundToInt() ?: "--"}°C",
                     style = MaterialTheme.typography.displayMedium
                 )
 
@@ -64,7 +65,7 @@ fun CurrentWeatherCard(
                         style = MaterialTheme.typography.titleMedium
                     )
                     Text(
-                        text = "Feels like ${weather.apparentTemperature?.toInt() ?: "--"}°C",
+                        text = "Feels like ${weather.apparentTemperature?.roundToInt() ?: "--"}°C",
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }

@@ -18,12 +18,12 @@ object WeatherIconRules {
                 return if (hasSomeClearSky) {
                     WeatherVisual(
                         iconRes = if (isDay) R.drawable.icon_weather_16 else R.drawable.icon_weather_42,
-                        label = if (isDay) "Furtuna" else "Furtuna"
+                        label = if (isDay) "Furtună" else "Furtună"
                     )
                 } else {
                     WeatherVisual(
                         iconRes = R.drawable.icon_weather_15,
-                        label = "Furtuna"
+                        label = "Furtună"
                     )
                 }
             }
@@ -31,15 +31,36 @@ object WeatherIconRules {
             45, 48 -> {
                 return WeatherVisual(
                     iconRes = R.drawable.icon_weather_11,
-                    label = "Ceata"
+                    label = "Ceață"
                 )
             }
 
             51, 53, 55, 56, 57, 80 -> {
-                return WeatherVisual(
-                    iconRes = if (isDay) R.drawable.icon_weather_14 else R.drawable.icon_weather_39,
-                    label = "Ploaie usoara"
-                )
+                return if (isDay) {
+                    if (hasSomeClearSky) {
+                        WeatherVisual(
+                            iconRes = R.drawable.icon_weather_14,
+                            label = "Ploaie ușoară"
+                        )
+                    } else {
+                        WeatherVisual(
+                            iconRes = R.drawable.icon_weather_12,
+                            label = "Ploaie ușoară"
+                        )
+                    }
+                } else {
+                    if (hasSomeClearSky) {
+                        WeatherVisual(
+                            iconRes = R.drawable.icon_weather_39,
+                            label = "Ploaie ușoară"
+                        )
+                    } else {
+                        WeatherVisual(
+                            iconRes = R.drawable.icon_weather_12,
+                            label = "Ploaie ușoară"
+                        )
+                    }
+                }
             }
 
             61, 81 -> {
@@ -92,22 +113,22 @@ object WeatherIconRules {
         return when (cloudCover) {
             in 0..10 -> WeatherVisual(
                 iconRes = if (isDay) R.drawable.icon_weather_01 else R.drawable.icon_weather_33,
-                label = if (isDay) "Insorit" else "Senin"
+                label = if (isDay) "Însorit" else "Senin"
             )
 
             in 11..30 -> WeatherVisual(
                 iconRes = if (isDay) R.drawable.icon_weather_02 else R.drawable.icon_weather_34,
-                label = if (isDay) "Predominant insorit" else "Predominant senin"
+                label = if (isDay) "Predominant însorit" else "Predominant senin"
             )
 
             in 31..50 -> WeatherVisual(
                 iconRes = if (isDay) R.drawable.icon_weather_03 else R.drawable.icon_weather_35,
-                label = if (isDay) "Parcial insorit" else "Parțial noros"
+                label = if (isDay) "Parțial însorit" else "Parțial noros"
             )
 
             in 51..70 -> WeatherVisual(
                 iconRes = if (isDay) R.drawable.icon_weather_04 else R.drawable.icon_weather_36,
-                label = if (isDay) "Nori si soare" else "Parțial spre predominant noros"
+                label = if (isDay) "Nori și soare" else "Parțial spre predominant noros"
             )
 
             in 71..90 -> WeatherVisual(

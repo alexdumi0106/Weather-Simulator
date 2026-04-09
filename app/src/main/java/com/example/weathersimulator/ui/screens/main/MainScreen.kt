@@ -59,6 +59,13 @@ import androidx.compose.foundation.Image
 import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import kotlin.math.roundToInt
+import androidx.compose.foundation.clickable
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.foundation.shape.RoundedCornerShape
 
 @Composable
 fun WeatherHomeSection(
@@ -119,7 +126,7 @@ fun WeatherHomeSection(
         )
 
         Text(
-            text = "${current.temperature?.toInt() ?: "--"}°",
+            text = "${current.temperature?.roundToInt() ?: "--"}°",
             color = Color.White,
             style = MaterialTheme.typography.displayLarge.copy(
                 fontWeight = FontWeight.Light,
@@ -148,7 +155,7 @@ fun WeatherHomeSection(
         }
 
         Text(
-            text = "Temperatura resimtita: ${current.apparentTemperature?.toInt() ?: "--"}°",
+            text = "Temperatura resimtita: ${current.apparentTemperature?.roundToInt() ?: "--"}°",
             color = Color.White.copy(alpha = 0.86f),
             style = MaterialTheme.typography.titleMedium
         )
@@ -201,10 +208,10 @@ fun MainScreen(navController: NavController) {
     val weatherVm: WeatherViewModel = hiltViewModel(activity)
     val weatherState = weatherVm.state.collectAsState().value
 
-    LaunchedEffect(s.lat, s.lon) {
+    LaunchedEffect(s.lat, s.lon, weatherState.isHistoryMode) {
         val lat = s.lat
         val lon = s.lon
-        if (lat != null && lon != null) {
+        if (!weatherState.isHistoryMode && lat != null && lon != null) {
             weatherVm.load(lat, lon)
         }
     }
@@ -256,6 +263,47 @@ fun MainScreen(navController: NavController) {
                     latitude = s.lat ?: 0.0,
                     longitude = s.lon ?: 0.0
                 )
+
+                Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                color = Color.White.copy(alpha = 0.14f),
+                                shape = RoundedCornerShape(20.dp)
+                            )
+                            .clickable {
+                                weatherVm.setHistoryMode(true)
+                                weatherVm.loadHistorical()
+                                navController.navigate(Routes.WEATHER_HISTORY_ROUTE)
+                            }
+                            .padding(16.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "HISTORY",
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                            color = Color.White.copy(alpha = 0.7f),
+                            fontSize = 11.sp
+                        )
+
+                        Text(
+                            text = "Weather Data",
+                            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                            color = Color.White,
+                            fontSize = 32.sp
+                        )
+
+                        Text(
+                            text = "Browse historical data",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.White.copy(alpha = 0.7f),
+                            fontSize = 12.sp
+                        )
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(110.dp))
             }

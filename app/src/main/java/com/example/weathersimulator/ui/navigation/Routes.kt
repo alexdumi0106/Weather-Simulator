@@ -13,4 +13,7 @@ object Routes {
 
     const val AI_SIMULATION = "ai_simulation"
 
+    const val WEATHER_HISTORY_ROUTE = "weather_history"
+    const val WEATHER_HISTORY_DAY_ROUTE = "weather_history_day"
+
 }
