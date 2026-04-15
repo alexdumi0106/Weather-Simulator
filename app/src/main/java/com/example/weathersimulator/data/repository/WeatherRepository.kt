@@ -65,11 +65,18 @@ class WeatherRepository @Inject constructor(
         )
 
         val parsedDailyRows = dailyRows.sortedBy { it.time }
-        val dailyDates = dailyRows.map { it.time }.sorted()
+        val dailyDates = parsedDailyRows.map { it.time }
+        val weatherCodeCountsByDate = mutableMapOf<String, MutableMap<Int, Int>>()
+        for (row in hourlyRows) {
+            val date = row.time.take(10)
+            val countsForDate = weatherCodeCountsByDate.getOrPut(date) { mutableMapOf() }
+            countsForDate[row.weatherCode] = (countsForDate[row.weatherCode] ?: 0) + 1
+        }
+
         val dailyDto = DailyDto(
             time = dailyDates,
             weatherCode = dailyDates.map { date ->
-                hourlyRows.filter { it.time.startsWith(date) }.mostFrequentWeatherCode()
+                weatherCodeCountsByDate[date].mostFrequentWeatherCode()
             },
             tempMax = parsedDailyRows.map { it.temperatureMaxC },
             tempMin = parsedDailyRows.map { it.temperatureMinC }
@@ -107,13 +114,11 @@ class WeatherRepository @Inject constructor(
         return hour in 6..18
     }
 
-    private fun List<WeatherCsvRow>.mostFrequentWeatherCode(): Int {
-        if (isEmpty()) return 0
+    private fun Map<Int, Int>?.mostFrequentWeatherCode(): Int {
+        val counts = this ?: return 0
+        if (counts.isEmpty()) return 0
 
-        return groupingBy { it.weatherCode }
-            .eachCount()
-            .maxByOrNull { it.value }
-            ?.key ?: first().weatherCode
+        return counts.maxByOrNull { it.value }?.key ?: 0
     }
 
 }

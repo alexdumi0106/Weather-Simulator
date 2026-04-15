@@ -26,12 +26,19 @@ data class WeatherUiState(
 )
 
 data class DailyForecastItemUi(
+    val dateKey: String,
     val dayLabel: String,
     val maxTemperature: String,
     val minTemperature: String,
     val weatherCode: Int,
     val cloudCover: Int,
-    val isDay: Boolean = true
+    val isDay: Boolean = true,
+    val dayWeatherCode: Int,
+    val dayCloudCover: Int,
+    val dayMaxTemperature: String,
+    val nightWeatherCode: Int,
+    val nightCloudCover: Int,
+    val nightMaxTemperature: String
 )
 
 data class HourlyForecastItemUi(

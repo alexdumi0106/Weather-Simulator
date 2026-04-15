@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import com.example.weathersimulator.ui.weather.WeatherIconRules
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -299,7 +300,11 @@ fun WeatherHistoryDayScreen(
                     }
                 } else {
                     items(state.historicalHourlyForecast) { item ->
-                        HistoricalHourRow(item = item)
+                        HistoricalHourRow(
+                            item = item,
+                            sunrise = state.historyDaySummary?.sunrise,
+                            sunset = state.historyDaySummary?.sunset
+                        )
                     }
                 }
             }
@@ -337,11 +342,19 @@ private fun buildMonthGrid(yearMonth: YearMonth): List<LocalDate?> {
 
 @Composable
 private fun HistoricalHourRow(
-    item: HourlyForecastItemUi
+    item: HourlyForecastItemUi,
+    sunrise: String?,
+    sunset: String?
 ) {
+    val isDay = resolveHistoricalIsDay(
+        timeLabel = item.time,
+        sunrise = sunrise,
+        sunset = sunset,
+        fallbackIsDay = item.isDay
+    )
     val visual = WeatherIconRules.resolve(
         weatherCode = item.weatherCode,
-        isDay = item.isDay,
+        isDay = isDay,
         cloudCover = item.cloudCover
     )
 
@@ -393,4 +406,26 @@ private fun HistoricalHourRow(
             )
         }
     }
+}
+
+private fun resolveHistoricalIsDay(
+    timeLabel: String,
+    sunrise: String?,
+    sunset: String?,
+    fallbackIsDay: Boolean
+): Boolean {
+    val hour = timeLabel.substringBefore(":").toIntOrNull() ?: return fallbackIsDay
+    val sunriseHour = ceilHourFromTime(sunrise)
+    val sunsetHour = ceilHourFromTime(sunset)
+
+    if (sunriseHour == null || sunsetHour == null) {
+        return fallbackIsDay
+    }
+
+    return hour >= sunriseHour && hour < sunsetHour
+}
+
+private fun ceilHourFromTime(value: String?): Int? {
+    val parsed = value?.let { runCatching { LocalTime.parse(it) }.getOrNull() } ?: return null
+    return if (parsed.minute == 0 && parsed.second == 0) parsed.hour else parsed.hour + 1
 }

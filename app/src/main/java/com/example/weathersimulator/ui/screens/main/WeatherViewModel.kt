@@ -12,6 +12,7 @@ import com.example.weathersimulator.data.local.weather.WeatherCsvDailyRow
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.util.Calendar
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
@@ -34,11 +35,17 @@ class WeatherViewModel @Inject constructor(
     private var lastFetchLat: Double? = null
     private var lastFetchLon: Double? = null
     private var cachedResponse: com.example.weathersimulator.data.remote.weather.OpenMeteoResponse? = null
+    private var historicalCachedResponse: OpenMeteoResponse? = null
     private var historicalDailyRowsByDate: Map<String, WeatherCsvDailyRow> = emptyMap()
     private var historicalTimezone: String = "Europe/Bucharest"
     private var historicalCsvUtcOffsetSeconds: Int = 10_800
+    private var historicalWarmupJob: Job? = null
     private val minRefreshIntervalMs = 60_000L
     private val minLocationDelta = 0.01
+
+    init {
+        warmUpHistoricalInBackground()
+    }
 
     fun load(lat: Double, lon: Double) {
         if (_state.value.isHistoryMode) return
@@ -99,53 +106,41 @@ class WeatherViewModel @Inject constructor(
     fun loadHistorical() {
         if (_state.value.isLoading) return
 
-        val currentState = _state.value
-        if (
-            currentState.data != null &&
-            currentState.availableHistoryMonths.isNotEmpty() &&
-            historicalDailyRowsByDate.isNotEmpty()
-        ) {
-            _state.update {
-                it.copy(
-                    isLoading = false,
-                    isHistoryMode = true,
-                    error = null
-                )
-            }
-            return
-        }
+        warmUpHistoricalInBackground()
 
         viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, error = null) }
+            val hasHistoricalCacheReady =
+                historicalCachedResponse != null && historicalDailyRowsByDate.isNotEmpty()
+
+            if (!hasHistoricalCacheReady) {
+                _state.update { it.copy(isLoading = true, error = null) }
+            } else {
+                _state.update { it.copy(error = null) }
+            }
 
             try {
-                val historicalDataset = withContext(Dispatchers.IO) {
-                    weatherRepository.getHistoricalDataset()
-                }
-                historicalDailyRowsByDate = historicalDataset.dailyRows.associateBy { it.time }
-                historicalTimezone = historicalDataset.timezone
-                historicalCsvUtcOffsetSeconds = historicalDataset.utcOffsetSeconds
+                historicalWarmupJob?.join()
+                val response = preloadHistoricalData()
 
-                val response = withContext(Dispatchers.IO) {
-                    weatherRepository.getHistoricalForecast(historicalDataset)
-                }
+                applyHistoricalResponse(response)
 
-                applyResponse(response)
-
-                val months = buildAvailableHistoryMonths()
-                val latestMonth = "2025-12"
+                val months = buildAvailableHistoryMonthsFromResponse(response)
+                val preferredMonth = _state.value.selectedHistoryMonth
+                val selectedMonth = preferredMonth
+                    ?.takeIf { key -> months.any { it.key == key } }
+                    ?: months.firstOrNull()?.key
 
                 _state.update {
                     it.copy(
                         isLoading = false,
                         isHistoryMode = true,
                         availableHistoryMonths = months,
-                        selectedHistoryMonth = latestMonth
+                        selectedHistoryMonth = selectedMonth
                     )
                 }
 
-                if (latestMonth != null) {
-                    selectHistoryMonth(latestMonth)
+                if (selectedMonth != null) {
+                    selectHistoryMonth(selectedMonth)
                 }
             } catch (e: Exception) {
                 _state.update {
@@ -156,6 +151,40 @@ class WeatherViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    private fun warmUpHistoricalInBackground() {
+        if (historicalWarmupJob?.isActive == true) return
+        if (historicalCachedResponse != null && historicalDailyRowsByDate.isNotEmpty()) return
+
+        historicalWarmupJob = viewModelScope.launch(Dispatchers.Default) {
+            runCatching { preloadHistoricalData() }
+                .onFailure { error ->
+                    Log.w("WeatherViewModel", "Historical preload failed: ${error.message}")
+                }
+        }
+    }
+
+    private suspend fun preloadHistoricalData(): OpenMeteoResponse {
+        val cached = historicalCachedResponse
+        if (cached != null && historicalDailyRowsByDate.isNotEmpty()) {
+            return cached
+        }
+
+        val historicalDataset = withContext(Dispatchers.IO) {
+            weatherRepository.getHistoricalDataset()
+        }
+
+        historicalDailyRowsByDate = historicalDataset.dailyRows.associateBy { it.time }
+        historicalTimezone = historicalDataset.timezone
+        historicalCsvUtcOffsetSeconds = historicalDataset.utcOffsetSeconds
+
+        val response = withContext(Dispatchers.IO) {
+            weatherRepository.getHistoricalForecast(historicalDataset)
+        }
+
+        historicalCachedResponse = response
+        return response
     }
 
     fun setHistoryMode(enabled: Boolean) {
@@ -183,6 +212,18 @@ class WeatherViewModel @Inject constructor(
                 hourlyForecast = hourlyItems,
                 dailyForecast = dailyItems,
                 error = null
+            )
+        }
+    }
+
+    private fun applyHistoricalResponse(response: OpenMeteoResponse) {
+        _state.update {
+            it.copy(
+                isLoading = false,
+                data = response,
+                error = null,
+                hourlyForecast = emptyList(),
+                dailyForecast = emptyList()
             )
         }
     }
@@ -274,6 +315,26 @@ class WeatherViewModel @Inject constructor(
         }
     }
 
+    private fun buildAvailableHistoryMonthsFromResponse(
+        response: OpenMeteoResponse
+    ): List<HistoryMonthUi> {
+        val hourlyTimes = response.hourly?.time ?: return emptyList()
+
+        return hourlyTimes
+            .asSequence()
+            .map { it.take(7) }
+            .filter { it.length == 7 && it[4] == '-' }
+            .distinct()
+            .sortedDescending()
+            .map { monthKey ->
+                HistoryMonthUi(
+                    key = monthKey,
+                    label = formatHistoryMonthLabel(monthKey)
+                )
+            }
+            .toList()
+    }
+
     private fun buildAvailableHistoryMonths(): List<HistoryMonthUi> {
         return buildHistoricalMonthRange(
             startMonthKey = "2012-01",
@@ -337,7 +398,7 @@ class WeatherViewModel @Inject constructor(
     private fun formatHistoryMonthLabel(monthKey: String): String {
         return try {
             val inputFormat = java.text.SimpleDateFormat("yyyy-MM", java.util.Locale.getDefault())
-            val outputFormat = java.text.SimpleDateFormat("MMMM yyyy", java.util.Locale("ro"))
+            val outputFormat = java.text.SimpleDateFormat("MMMM", java.util.Locale("ro"))
             val date = inputFormat.parse(monthKey)
             val formatted = outputFormat.format(date ?: return monthKey)
             formatted.replaceFirstChar { it.uppercase() }
@@ -482,17 +543,82 @@ class WeatherViewModel @Inject constructor(
         val weatherCodes = daily.weatherCode
         val hourly = response.hourly
         val dailyCloudCoverByDate = hourly?.let { computeDailyCloudCover(it.time, it.cloudCover) } ?: emptyMap()
+        val dailyDayNightStatsByDate = hourly?.let { computeDailyDayNightStats(it) } ?: emptyMap()
 
         val size = minOf(times.size, maxTemps.size, minTemps.size, weatherCodes.size, 10)
 
         return (0 until size).map { index ->
+            val dateKey = times[index]
+            val dayNightStats = dailyDayNightStatsByDate[dateKey]
+            val dailyCloudCover = dailyCloudCoverByDate[dateKey] ?: 100
+
             DailyForecastItemUi(
-                dayLabel = formatDayLabel(times[index], index),
+                dateKey = dateKey,
+                dayLabel = formatDayLabel(dateKey, index),
                 maxTemperature = "${maxTemps[index].roundToInt()}°",
                 minTemperature = "${minTemps[index].roundToInt()}°",
                 weatherCode = weatherCodes[index],
-                cloudCover = dailyCloudCoverByDate[times[index]] ?: 100,
-                isDay = true
+                cloudCover = dailyCloudCover,
+                isDay = true,
+                dayWeatherCode = dayNightStats?.dayWeatherCode ?: weatherCodes[index],
+                dayCloudCover = dayNightStats?.dayCloudCover ?: dailyCloudCover,
+                dayMaxTemperature = "${(dayNightStats?.dayMaxTemperature ?: maxTemps[index]).roundToInt()}°",
+                nightWeatherCode = dayNightStats?.nightWeatherCode ?: weatherCodes[index],
+                nightCloudCover = dayNightStats?.nightCloudCover ?: dailyCloudCover,
+                nightMaxTemperature = "${(dayNightStats?.nightMaxTemperature ?: minTemps[index]).roundToInt()}°"
+            )
+        }
+    }
+
+    private fun computeDailyDayNightStats(
+        hourly: com.example.weathersimulator.data.remote.weather.HourlyDto
+    ): Map<String, DayNightStats> {
+        val size = minOf(
+            hourly.time.size,
+            hourly.temperature.size,
+            hourly.weatherCode.size,
+            hourly.cloudCover.size,
+            hourly.isDay.size
+        )
+        if (size == 0) return emptyMap()
+
+        val grouped = mutableMapOf<String, MutableDayNightStats>()
+        for (index in 0 until size) {
+            val dateKey = hourly.time[index].take(10)
+            val bucket = grouped.getOrPut(dateKey) { MutableDayNightStats() }
+            val weatherCode = hourly.weatherCode[index]
+            val cloudCover = hourly.cloudCover[index]
+            val temperature = hourly.temperature[index]
+
+            if (hourly.isDay[index] == 1) {
+                bucket.dayCodes.add(weatherCode)
+                bucket.dayClouds.add(cloudCover)
+                bucket.dayTemperatures.add(temperature)
+            } else {
+                bucket.nightCodes.add(weatherCode)
+                bucket.nightClouds.add(cloudCover)
+                bucket.nightTemperatures.add(temperature)
+            }
+        }
+
+        return grouped.mapValues { (_, value) ->
+            val fallbackCode = value.dayCodes.firstOrNull()
+                ?: value.nightCodes.firstOrNull()
+                ?: 0
+            val fallbackCloud = value.dayClouds.firstOrNull()
+                ?: value.nightClouds.firstOrNull()
+                ?: 100
+            val fallbackTemp = value.dayTemperatures.maxOrNull()
+                ?: value.nightTemperatures.maxOrNull()
+                ?: 0.0
+
+            DayNightStats(
+                dayWeatherCode = value.dayCodes.mostFrequentIntOr(fallbackCode),
+                dayCloudCover = value.dayClouds.averageIntOr(fallbackCloud),
+                dayMaxTemperature = value.dayTemperatures.maxOrNull() ?: fallbackTemp,
+                nightWeatherCode = value.nightCodes.mostFrequentIntOr(fallbackCode),
+                nightCloudCover = value.nightClouds.averageIntOr(fallbackCloud),
+                nightMaxTemperature = value.nightTemperatures.maxOrNull() ?: fallbackTemp
             )
         }
     }
@@ -558,5 +684,36 @@ class WeatherViewModel @Inject constructor(
         } catch (e: Exception) {
             formatHour(dateTime)
         }
+    }
+
+    private data class MutableDayNightStats(
+        val dayCodes: MutableList<Int> = mutableListOf(),
+        val dayClouds: MutableList<Int> = mutableListOf(),
+        val dayTemperatures: MutableList<Double> = mutableListOf(),
+        val nightCodes: MutableList<Int> = mutableListOf(),
+        val nightClouds: MutableList<Int> = mutableListOf(),
+        val nightTemperatures: MutableList<Double> = mutableListOf()
+    )
+
+    private data class DayNightStats(
+        val dayWeatherCode: Int,
+        val dayCloudCover: Int,
+        val dayMaxTemperature: Double,
+        val nightWeatherCode: Int,
+        val nightCloudCover: Int,
+        val nightMaxTemperature: Double
+    )
+
+    private fun List<Int>.mostFrequentIntOr(default: Int): Int {
+        if (isEmpty()) return default
+        return groupingBy { it }
+            .eachCount()
+            .maxByOrNull { it.value }
+            ?.key ?: default
+    }
+
+    private fun List<Int>.averageIntOr(default: Int): Int {
+        if (isEmpty()) return default
+        return average().roundToInt()
     }
 }

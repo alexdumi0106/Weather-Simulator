@@ -1,7 +1,9 @@
 package com.example.weathersimulator.ui.components
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -10,12 +12,20 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -34,6 +44,7 @@ fun DailyForecastList(
     if (items.isEmpty()) return
 
     val visibleItems = items.take(10)
+    var expandedDateKey by remember(visibleItems) { mutableStateOf<String?>(null) }
     val minGlobal = visibleItems.minOf { parseTemp(it.minTemperature) }
     val maxGlobal = visibleItems.maxOf { parseTemp(it.maxTemperature) }
 
@@ -61,7 +72,11 @@ fun DailyForecastList(
                 DailyForecastRow(
                     item = item,
                     globalMin = minGlobal,
-                    globalMax = maxGlobal
+                    globalMax = maxGlobal,
+                    isExpanded = expandedDateKey == item.dateKey,
+                    onToggleExpanded = {
+                        expandedDateKey = if (expandedDateKey == item.dateKey) null else item.dateKey
+                    }
                 )
 
                 if (index < visibleItems.lastIndex) {
@@ -79,12 +94,24 @@ fun DailyForecastList(
 private fun DailyForecastRow(
     item: DailyForecastItemUi,
     globalMin: Int,
-    globalMax: Int
+    globalMax: Int,
+    isExpanded: Boolean,
+    onToggleExpanded: () -> Unit
 ) {
     val visual = WeatherIconRules.resolve(
         weatherCode = item.weatherCode,
         isDay = item.isDay,
         cloudCover = item.cloudCover
+    )
+    val dayVisual = WeatherIconRules.resolve(
+        weatherCode = item.dayWeatherCode,
+        isDay = true,
+        cloudCover = item.dayCloudCover
+    )
+    val nightVisual = WeatherIconRules.resolve(
+        weatherCode = item.nightWeatherCode,
+        isDay = false,
+        cloudCover = item.nightCloudCover
     )
 
     val itemMin = parseTemp(item.minTemperature)
@@ -95,58 +122,141 @@ private fun DailyForecastRow(
     val activeFraction = (endFraction - startFraction).coerceAtLeast(0.08f)
     val trackWidth = 118.dp
 
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
+            .clickable { onToggleExpanded() }
+            .animateContentSize()
             .padding(horizontal = 16.dp, vertical = 12.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        Text(
-            text = item.dayLabel,
-            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
-            color = Color.White,
-            modifier = Modifier.weight(1f)
-        )
-
-        Image(
-            painter = painterResource(id = visual.iconRes),
-            contentDescription = "Icon meteo zilnic",
-            modifier = Modifier
-                .padding(horizontal = 8.dp)
-                .width(38.dp)
-        )
-
-        Text(
-            text = item.minTemperature,
-            style = MaterialTheme.typography.bodyMedium,
-            color = Color.White.copy(alpha = 0.72f),
-            modifier = Modifier.padding(end = 8.dp)
-        )
-
-        Box(
-            modifier = Modifier
-                .width(trackWidth)
-                .height(6.dp)
-                .clip(RoundedCornerShape(99.dp))
-                .background(Color(0x55A6C4D8))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
+            Text(
+                text = item.dayLabel,
+                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
+                color = Color.White,
+                modifier = Modifier.weight(1f)
+            )
+
+            Image(
+                painter = painterResource(id = visual.iconRes),
+                contentDescription = "Icon meteo zilnic",
+                modifier = Modifier
+                    .padding(horizontal = 8.dp)
+                    .width(38.dp)
+            )
+
+            Text(
+                text = item.minTemperature,
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color.White.copy(alpha = 0.72f),
+                modifier = Modifier.padding(end = 8.dp)
+            )
+
             Box(
                 modifier = Modifier
-                    .offset(x = trackWidth * startFraction)
-                    .width(trackWidth * activeFraction)
+                    .width(trackWidth)
                     .height(6.dp)
                     .clip(RoundedCornerShape(99.dp))
-                    .background(Color(0xFFB8E46A))
+                    .background(Color(0x55A6C4D8))
+            ) {
+                Box(
+                    modifier = Modifier
+                        .offset(x = trackWidth * startFraction)
+                        .width(trackWidth * activeFraction)
+                        .height(6.dp)
+                        .clip(RoundedCornerShape(99.dp))
+                        .background(Color(0xFFB8E46A))
+                )
+            }
+
+            Text(
+                text = item.maxTemperature,
+                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
+                color = Color.White,
+                modifier = Modifier.padding(start = 8.dp)
+            )
+
+            Icon(
+                imageVector = Icons.Filled.ArrowDropDown,
+                contentDescription = if (isExpanded) "Ascunde detalii" else "Afișează detalii",
+                tint = Color.White.copy(alpha = 0.9f),
+                modifier = Modifier.size(20.dp)
             )
         }
 
+        if (isExpanded) {
+            HorizontalDivider(color = Color.White.copy(alpha = 0.16f))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                ForecastPartColumn(
+                    title = "Zi",
+                    iconRes = dayVisual.iconRes,
+                    description = dayVisual.label,
+                    maxTemperature = item.dayMaxTemperature,
+                    modifier = Modifier.weight(1f)
+                )
+
+                ForecastPartColumn(
+                    title = "Noapte",
+                    iconRes = nightVisual.iconRes,
+                    description = nightVisual.label,
+                    maxTemperature = item.nightMaxTemperature,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ForecastPartColumn(
+    title: String,
+    iconRes: Int,
+    description: String,
+    maxTemperature: String,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
         Text(
-            text = item.maxTemperature,
-            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
-            color = Color.White,
-            modifier = Modifier.padding(start = 8.dp)
+            text = title,
+            style = MaterialTheme.typography.labelMedium,
+            color = Color.White.copy(alpha = 0.75f)
         )
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Image(
+                painter = painterResource(id = iconRes),
+                contentDescription = description,
+                modifier = Modifier.size(28.dp)
+            )
+
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.White
+                )
+                Text(
+                    text = "Max: $maxTemperature",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.White.copy(alpha = 0.82f)
+                )
+            }
+        }
     }
 }
 

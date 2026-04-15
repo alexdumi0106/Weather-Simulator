@@ -240,8 +240,7 @@ fun WeatherHistoryScreen(
                                                     onClick = {
                                                         yearExpanded = false
                                                         selectedYear = year
-                                                        val firstMonthInYear = state.availableHistoryMonths.firstOrNull { it.key.startsWith("$year-") }
-                                                        selectedMonthKey = firstMonthInYear?.key
+                                                        selectedMonthKey = null
                                                         isMonthSelectionConfirmed = false
                                                     }
                                                 )
@@ -270,9 +269,11 @@ fun WeatherHistoryScreen(
                                                         color = Color(0xFF6A7280)
                                                     )
                                                     Text(
-                                                        text = state.availableHistoryMonths
-                                                            .firstOrNull { it.key == selectedMonthKey }
-                                                            ?.label ?: "Select month",
+                                                        text = selectedMonthKey?.let { key ->
+                                                            state.availableHistoryMonths
+                                                                .firstOrNull { it.key == key }
+                                                                ?.label
+                                                        } ?: "Select month",
                                                         style = MaterialTheme.typography.titleMedium
                                                     )
                                                 }
