@@ -104,9 +104,9 @@ private fun DailyForecastRow(
         cloudCover = item.cloudCover
     )
     val dayVisual = WeatherIconRules.resolve(
-        weatherCode = item.dayWeatherCode,
-        isDay = true,
-        cloudCover = item.dayCloudCover
+        weatherCode = item.weatherCode,
+        isDay = item.isDay,
+        cloudCover = item.cloudCover
     )
     val nightVisual = WeatherIconRules.resolve(
         weatherCode = item.nightWeatherCode,
@@ -200,7 +200,8 @@ private fun DailyForecastRow(
                     title = "Zi",
                     iconRes = dayVisual.iconRes,
                     description = dayVisual.label,
-                    maxTemperature = item.dayMaxTemperature,
+                    temperatureLabel = "Max",
+                    temperature = item.dayMaxTemperature,
                     modifier = Modifier.weight(1f)
                 )
 
@@ -208,7 +209,8 @@ private fun DailyForecastRow(
                     title = "Noapte",
                     iconRes = nightVisual.iconRes,
                     description = nightVisual.label,
-                    maxTemperature = item.nightMaxTemperature,
+                    temperatureLabel = "Min",
+                    temperature = item.nightMinTemperature,
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -221,7 +223,8 @@ private fun ForecastPartColumn(
     title: String,
     iconRes: Int,
     description: String,
-    maxTemperature: String,
+    temperatureLabel: String,
+    temperature: String,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -251,7 +254,7 @@ private fun ForecastPartColumn(
                     color = Color.White
                 )
                 Text(
-                    text = "Max: $maxTemperature",
+                    text = "$temperatureLabel: $temperature",
                     style = MaterialTheme.typography.bodySmall,
                     color = Color.White.copy(alpha = 0.82f)
                 )

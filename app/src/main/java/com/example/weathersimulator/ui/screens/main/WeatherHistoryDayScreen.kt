@@ -228,7 +228,7 @@ fun WeatherHistoryDayScreen(
                 state.historyDaySummary?.let { summary ->
                     item {
                         Card(
-                            colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFD)),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFF1E344A)),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Column(
@@ -237,39 +237,100 @@ fun WeatherHistoryDayScreen(
                             ) {
                                 Text(
                                     text = summary.dateLabel,
-                                    style = MaterialTheme.typography.titleLarge
+                                    style = MaterialTheme.typography.titleLarge,
+                                    color = Color.White
                                 )
 
                                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    WeatherSummaryTemperatureColumn(
+                                        title = "Zi",
+                                        temperatureLabel = "Max temperature",
+                                        temperature = summary.maxTemperature,
+                                        iconRes = WeatherIconRules.resolve(
+                                            weatherCode = summary.dayWeatherCode,
+                                            isDay = true,
+                                            cloudCover = summary.dayCloudCover
+                                        ).iconRes,
+                                        description = WeatherIconRules.resolve(
+                                            weatherCode = summary.dayWeatherCode,
+                                            isDay = true,
+                                            cloudCover = summary.dayCloudCover
+                                        ).label,
+                                        modifier = Modifier.weight(1f),
+                                        titleColor = Color.White.copy(alpha = 0.8f),
+                                        textColor = Color.White
+                                    )
+                                    WeatherSummaryTemperatureColumn(
+                                        title = "Noapte",
+                                        temperatureLabel = "Min temperature",
+                                        temperature = summary.minTemperature,
+                                        iconRes = WeatherIconRules.resolve(
+                                            weatherCode = summary.nightWeatherCode,
+                                            isDay = false,
+                                            cloudCover = summary.nightCloudCover
+                                        ).iconRes,
+                                        description = WeatherIconRules.resolve(
+                                            weatherCode = summary.nightWeatherCode,
+                                            isDay = false,
+                                            cloudCover = summary.nightCloudCover
+                                        ).label,
+                                        modifier = Modifier.weight(1f),
+                                        titleColor = Color.White.copy(alpha = 0.8f),
+                                        textColor = Color.White
+                                    )
+                                }
+
+                                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                     Column(modifier = Modifier.weight(1f)) {
-                                        Text("Max temperature", style = MaterialTheme.typography.labelMedium)
-                                        Text(summary.maxTemperature, style = MaterialTheme.typography.titleMedium)
+                                        Text(
+                                            "Average humidity",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = Color.White.copy(alpha = 0.8f)
+                                        )
+                                        Text(
+                                            summary.averageHumidity,
+                                            style = MaterialTheme.typography.titleMedium,
+                                            color = Color.White
+                                        )
                                     }
                                     Column(modifier = Modifier.weight(1f)) {
-                                        Text("Min temperature", style = MaterialTheme.typography.labelMedium)
-                                        Text(summary.minTemperature, style = MaterialTheme.typography.titleMedium)
+                                        Text(
+                                            "Average pressure",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = Color.White.copy(alpha = 0.8f)
+                                        )
+                                        Text(
+                                            summary.averagePressure,
+                                            style = MaterialTheme.typography.titleMedium,
+                                            color = Color.White
+                                        )
                                     }
                                 }
 
                                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                     Column(modifier = Modifier.weight(1f)) {
-                                        Text("Average humidity", style = MaterialTheme.typography.labelMedium)
-                                        Text(summary.averageHumidity, style = MaterialTheme.typography.titleMedium)
+                                        Text(
+                                            "Sunrise",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = Color.White.copy(alpha = 0.8f)
+                                        )
+                                        Text(
+                                            summary.sunrise ?: "-",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            color = Color.White
+                                        )
                                     }
                                     Column(modifier = Modifier.weight(1f)) {
-                                        Text("Average pressure", style = MaterialTheme.typography.labelMedium)
-                                        Text(summary.averagePressure, style = MaterialTheme.typography.titleMedium)
-                                    }
-                                }
-
-                                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text("Sunrise", style = MaterialTheme.typography.labelMedium)
-                                        Text(summary.sunrise ?: "-", style = MaterialTheme.typography.titleMedium)
-                                    }
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text("Sunset", style = MaterialTheme.typography.labelMedium)
-                                        Text(summary.sunset ?: "-", style = MaterialTheme.typography.titleMedium)
+                                        Text(
+                                            "Sunset",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = Color.White.copy(alpha = 0.8f)
+                                        )
+                                        Text(
+                                            summary.sunset ?: "-",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            color = Color.White
+                                        )
                                     }
                                 }
                             }
@@ -309,6 +370,48 @@ fun WeatherHistoryDayScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun WeatherSummaryTemperatureColumn(
+    title: String,
+    temperatureLabel: String,
+    temperature: String,
+    iconRes: Int,
+    description: String,
+    modifier: Modifier = Modifier,
+    titleColor: Color = Color(0xFF6A7280),
+    textColor: Color = Color.Unspecified
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.labelMedium,
+            color = titleColor
+        )
+
+        Image(
+            painter = painterResource(id = iconRes),
+            contentDescription = description,
+            modifier = Modifier.size(48.dp)
+        )
+
+        Text(
+            text = temperatureLabel,
+            style = MaterialTheme.typography.labelMedium,
+            color = titleColor
+        )
+
+        Text(
+            text = temperature,
+            style = MaterialTheme.typography.titleMedium,
+            color = textColor
+        )
     }
 }
 

@@ -38,7 +38,7 @@ data class DailyForecastItemUi(
     val dayMaxTemperature: String,
     val nightWeatherCode: Int,
     val nightCloudCover: Int,
-    val nightMaxTemperature: String
+    val nightMinTemperature: String
 )
 
 data class HourlyForecastItemUi(
@@ -73,6 +73,10 @@ data class HistoryDaySummaryUi(
     val dateLabel: String,
     val maxTemperature: String,
     val minTemperature: String,
+    val dayWeatherCode: Int,
+    val dayCloudCover: Int,
+    val nightWeatherCode: Int,
+    val nightCloudCover: Int,
     val averageHumidity: String,
     val averagePressure: String,
     val sunrise: String?,

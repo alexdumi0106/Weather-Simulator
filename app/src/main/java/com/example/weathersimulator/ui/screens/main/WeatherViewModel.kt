@@ -304,7 +304,8 @@ class WeatherViewModel @Inject constructor(
             )
         }
 
-        val daySummary = buildHistoryDaySummary(dayKey, dayIndexes, hourly)
+        val dayNightStats = computeDailyDayNightStats(hourly)[dayKey]
+        val daySummary = buildHistoryDaySummary(dayKey, dayIndexes, hourly, dayNightStats)
 
         _state.update {
             it.copy(
@@ -470,22 +471,36 @@ class WeatherViewModel @Inject constructor(
     private fun buildHistoryDaySummary(
         dayKey: String,
         indexes: List<Int>,
-        hourly: com.example.weathersimulator.data.remote.weather.HourlyDto
+        hourly: com.example.weathersimulator.data.remote.weather.HourlyDto,
+        dayNightStats: DayNightStats?
     ): HistoryDaySummaryUi? {
         if (indexes.isEmpty()) return null
 
         val temperatures = indexes.map { hourly.temperature[it] }
         val humidities = indexes.map { hourly.humidity[it] }
         val pressures = indexes.map { hourly.pressure[it] }
+        val dayIndexes = indexes.filter { hourly.isDay[it] == 1 }
+        val nightIndexes = indexes.filter { hourly.isDay[it] == 0 }
+        val dayWeatherCodes = dayIndexes.map { hourly.weatherCode[it] }
+        val dayCloudCovers = dayIndexes.map { hourly.cloudCover[it] }
+        val nightWeatherCodes = nightIndexes.map { hourly.weatherCode[it] }
+        val nightCloudCovers = nightIndexes.map { hourly.cloudCover[it] }
         val dailyRow = historicalDailyRowsByDate[dayKey]
 
         val sunrise = dailyRow?.sunrise?.let { normalizeHistoricalSolarTime(it) }
         val sunset = dailyRow?.sunset?.let { normalizeHistoricalSolarTime(it) }
 
+        val fallbackWeatherCode = hourly.weatherCode[indexes.firstOrNull() ?: 0]
+        val fallbackCloudCover = hourly.cloudCover[indexes.firstOrNull() ?: 0]
+
         return HistoryDaySummaryUi(
             dateLabel = formatHistoryDayLabel(dayKey),
             maxTemperature = "${temperatures.maxOrNull()?.roundToInt() ?: 0}°",
             minTemperature = "${temperatures.minOrNull()?.roundToInt() ?: 0}°",
+            dayWeatherCode = dayNightStats?.dayWeatherCode ?: dayWeatherCodes.withRainPriorityOr(fallbackWeatherCode),
+            dayCloudCover = dayNightStats?.dayCloudCover ?: dayCloudCovers.averageIntOr(fallbackCloudCover),
+            nightWeatherCode = dayNightStats?.nightWeatherCode ?: nightWeatherCodes.withRainPriorityOr(fallbackWeatherCode),
+            nightCloudCover = dayNightStats?.nightCloudCover ?: nightCloudCovers.averageIntOr(fallbackCloudCover),
             averageHumidity = "${humidities.average().toInt()}%",
             averagePressure = "${pressures.average().toInt()} hPa",
             sunrise = sunrise,
@@ -565,7 +580,7 @@ class WeatherViewModel @Inject constructor(
                 dayMaxTemperature = "${(dayNightStats?.dayMaxTemperature ?: maxTemps[index]).roundToInt()}°",
                 nightWeatherCode = dayNightStats?.nightWeatherCode ?: weatherCodes[index],
                 nightCloudCover = dayNightStats?.nightCloudCover ?: dailyCloudCover,
-                nightMaxTemperature = "${(dayNightStats?.nightMaxTemperature ?: minTemps[index]).roundToInt()}°"
+                nightMinTemperature = "${(dayNightStats?.nightMinTemperature ?: minTemps[index]).roundToInt()}°"
             )
         }
     }
@@ -613,12 +628,12 @@ class WeatherViewModel @Inject constructor(
                 ?: 0.0
 
             DayNightStats(
-                dayWeatherCode = value.dayCodes.mostFrequentIntOr(fallbackCode),
+                dayWeatherCode = value.dayCodes.withRainPriorityOr(fallbackCode),
                 dayCloudCover = value.dayClouds.averageIntOr(fallbackCloud),
                 dayMaxTemperature = value.dayTemperatures.maxOrNull() ?: fallbackTemp,
-                nightWeatherCode = value.nightCodes.mostFrequentIntOr(fallbackCode),
+                nightWeatherCode = value.nightCodes.withRainPriorityOr(fallbackCode),
                 nightCloudCover = value.nightClouds.averageIntOr(fallbackCloud),
-                nightMaxTemperature = value.nightTemperatures.maxOrNull() ?: fallbackTemp
+                nightMinTemperature = value.nightTemperatures.minOrNull() ?: fallbackTemp
             )
         }
     }
@@ -701,7 +716,7 @@ class WeatherViewModel @Inject constructor(
         val dayMaxTemperature: Double,
         val nightWeatherCode: Int,
         val nightCloudCover: Int,
-        val nightMaxTemperature: Double
+        val nightMinTemperature: Double
     )
 
     private fun List<Int>.mostFrequentIntOr(default: Int): Int {
@@ -715,5 +730,15 @@ class WeatherViewModel @Inject constructor(
     private fun List<Int>.averageIntOr(default: Int): Int {
         if (isEmpty()) return default
         return average().roundToInt()
+    }
+
+    private fun List<Int>.withRainPriorityOr(default: Int): Int {
+        if (isEmpty()) return default
+        val rainCodes = setOf(51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82, 95, 96, 99)
+        val rainyCodes = filter { it in rainCodes }
+        if (rainyCodes.isNotEmpty()) {
+            return rainyCodes.mostFrequentIntOr(default)
+        }
+        return mostFrequentIntOr(default)
     }
 }
