@@ -77,6 +77,15 @@ import com.example.weathersimulator.sensors.pressure.PressureTrend
 import com.example.weathersimulator.sensors.pressure.PressureViewModel
 import androidx.compose.foundation.layout.*
 import com.example.weathersimulator.ui.navigation.Routes
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
+
 
 
 
@@ -256,19 +265,51 @@ fun SimulatorScreen(
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text(text = "Weather Simulator AI") },
+                title = {
+                    Text(
+                        text = "Weather Simulator AI",
+                        color = Color.White,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = Color.White
+                        )
                     }
                 },
                 actions = {
-                    Switch(
-                        checked = soundsEnabled,
-                        onCheckedChange = { soundsEnabled = it }
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Sunet",
+                            color = Color.White.copy(alpha = 0.92f),
+                            fontSize = 14.sp
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Switch(
+                            checked = soundsEnabled,
+                            onCheckedChange = { soundsEnabled = it },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color.White,
+                                checkedTrackColor = Color.White.copy(alpha = 0.45f),
+                                uncheckedThumbColor = Color.White,
+                                uncheckedTrackColor = Color.White.copy(alpha = 0.22f)
+                            )
+                        )
+                    }
                 },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors()
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = Color.Transparent,
+                    navigationIconContentColor = Color.White,
+                    titleContentColor = Color.White,
+                    actionIconContentColor = Color.White
+                )
             )
         },
         modifier = Modifier
@@ -281,14 +322,15 @@ fun SimulatorScreen(
                 .background(backgroundColor)
         ) {
             // 1) FUNDAL ANIMAT (spate)
-            AnimatedSky(
+            WeatherScene(
                 cloudCoverage = cloudCoverage,
                 isStormy = (descriptionNow == "Furtună" || descriptionNow == "Furtună cu soare"),
                 pressureTrend = pressureSensorState.trendLabel,
                 windSpeed = wind,
-                humidity = humidity
+                humidity = humidity,
+                temperature = temperature,
+                weatherDescription = descriptionNow
             )
-
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -298,121 +340,190 @@ fun SimulatorScreen(
                 verticalArrangement = Arrangement.spacedBy(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(text = "Alege valorile atmosferice:", fontSize = 20.sp, color = Color.Black)
-
-                val sliderColors = SliderDefaults.colors(
-                    thumbColor = Color(0xFFFFB08A),
-                    activeTrackColor = Color(0xFFFFB08A),
-                    inactiveTrackColor = Color(0xFF4F4F4F)
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Simulează vremea în timp real",
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
                 )
 
-                Text(text = "Temperatura: ${temperature.toInt()}°C", fontSize = 18.sp, color = Color.Black)
-                Slider(
-                    value = temperature,
-                    onValueChange = {
-                        temperature = it.roundToInt().toFloat()
-                    },
-                    valueRange = -20f..50f,
-                    steps = 69,
-                    colors = sliderColors
+                Text(
+                    text = "Ajustează atmosfera și vezi cum cerul prinde viață.",
+                    fontSize = 15.sp,
+                    color = Color.White.copy(alpha = 0.88f)
                 )
 
-                Text(text = "Umiditate: ${humidity.toInt()}%", fontSize = 18.sp, color = Color.Black)
-                Slider(
-                    value = humidity,
-                    onValueChange = { v ->
-                        humidity = (v / 10f).roundToInt() * 10f
-                    },
-                    valueRange = 0f..100f,
-                    steps = 9,
-                    colors = sliderColors
-                )
+                Spacer(modifier = Modifier.height(4.dp))
 
-                //Text(text = "Presiune : ${pressure.toInt()} hPa", fontSize = 18.sp)
-                val isBarometerAvailable = pressureSensorState.isAvailable
-                val trend = pressureSensorState.trendLabel
-                val trendHpaPerHour = pressureSensorState.trendHpaPerHour
-
-                Row(
+                Card(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    shape = RoundedCornerShape(28.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color.White.copy(alpha = 0.16f)
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
                 ) {
-                    Text(
-                        text = if (useBarometer && sensorPressure != null)
-                            "Presiune (LIVE): ${sensorPressure.toInt()} hPa"
-                        else
-                            "Presiune: ${pressure.toInt()} hPa",
-                        fontSize = 18.sp,
-                        color = Color.Black
-                    )
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 18.dp, vertical = 20.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        Text(
+                            text = "Alege valorile atmosferice",
+                            fontSize = 20.sp,
+                            color = Color.White
+                        )
 
-                    // Toggle doar dacă există senzor
-                    if (isBarometerAvailable) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(text = "LIVE", fontSize = 14.sp, color = Color.Black)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Switch(
-                                checked = useBarometer,
-                                onCheckedChange = { useBarometer = it }
+                        val sliderColors = SliderDefaults.colors(
+                            thumbColor = Color(0xFFFFD180),
+                            activeTrackColor = Color(0xFFFFD180),
+                            inactiveTrackColor = Color.White.copy(alpha = 0.35f)
+                        )
+
+                        Text(
+                            text = "Temperatura: ${temperature.toInt()}°C",
+                            fontSize = 18.sp,
+                            color = Color.White
+                        )
+                        Slider(
+                            value = temperature,
+                            onValueChange = {
+                                temperature = it.roundToInt().toFloat()
+                            },
+                            valueRange = -20f..50f,
+                            steps = 69,
+                            colors = sliderColors
+                        )
+
+                        Text(
+                            text = "Umiditate: ${humidity.toInt()}%",
+                            fontSize = 18.sp,
+                            color = Color.White
+                        )
+                        Slider(
+                            value = humidity,
+                            onValueChange = { v ->
+                                humidity = (v / 10f).roundToInt() * 10f
+                            },
+                            valueRange = 0f..100f,
+                            steps = 9,
+                            colors = sliderColors
+                        )
+
+                        val isBarometerAvailable = pressureSensorState.isAvailable
+                        val trend = pressureSensorState.trendLabel
+                        val trendHpaPerHour = pressureSensorState.trendHpaPerHour
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = if (useBarometer && sensorPressure != null)
+                                    "Presiune (LIVE): ${sensorPressure.toInt()} hPa"
+                                else
+                                    "Presiune: ${pressure.toInt()} hPa",
+                                fontSize = 18.sp,
+                                color = Color.White
+                            )
+
+                            if (isBarometerAvailable) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        text = "LIVE",
+                                        fontSize = 14.sp,
+                                        color = Color.White
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Switch(
+                                        checked = useBarometer,
+                                        onCheckedChange = { useBarometer = it }
+                                    )
+                                }
+                            }
+                        }
+
+                        Slider(
+                            value = pressure,
+                            onValueChange = { p ->
+                                pressure = (p / 10f).roundToInt() * 10f
+                            },
+                            valueRange = 950f..1050f,
+                            steps = 9,
+                            enabled = !(useBarometer && sensorPressure != null),
+                            colors = sliderColors
+                        )
+
+                        if (isBarometerAvailable && trend != PressureTrend.UNKNOWN && trendHpaPerHour != null) {
+                            Text(
+                                text = "Trend: ${"%.1f".format(trendHpaPerHour)} hPa/oră • $trend",
+                                fontSize = 14.sp,
+                                color = Color.White.copy(alpha = 0.9f)
+                            )
+                        } else if (!isBarometerAvailable) {
+                            Text(
+                                text = "Barometru indisponibil. Folosește modul manual (slider).",
+                                fontSize = 14.sp,
+                                color = Color.White.copy(alpha = 0.9f)
                             )
                         }
+
+                        Text(
+                            text = "Viteza vântului: ${wind.toInt()} km/h",
+                            fontSize = 18.sp,
+                            color = Color.White
+                        )
+                        Slider(
+                            value = wind,
+                            onValueChange = { w ->
+                                wind = (w / 10f).roundToInt() * 10f
+                            },
+                            valueRange = 0f..120f,
+                            steps = 11,
+                            colors = sliderColors
+                        )
+
+                        Text(
+                            text = "Acoperire nori: ${cloudCoverage.toInt()}%",
+                            fontSize = 18.sp,
+                            color = Color.White
+                        )
+                        Slider(
+                            value = cloudCoverage,
+                            onValueChange = { value ->
+                                cloudCoverage = (value / 20f).roundToInt() * 20f
+                            },
+                            valueRange = 0f..100f,
+                            steps = 4,
+                            colors = sliderColors
+                        )
                     }
                 }
-
-                Slider(
-                    value = pressure,
-                    onValueChange = { p ->
-                        pressure = (p / 10f).roundToInt() * 10f
-                    },
-                    valueRange = 950f..1050f,
-                    steps = 9,
-                    enabled = !(useBarometer && sensorPressure != null),
-                    colors = sliderColors
-                )
-                if (isBarometerAvailable && trend != PressureTrend.UNKNOWN && trendHpaPerHour != null) {
-                    Text(
-                        text = "Trend: ${"%.1f".format(trendHpaPerHour)} hPa/oră • $trend",
-                        fontSize = 14.sp,
-                        color = Color.Black
-                    )
-                } else if (!isBarometerAvailable) {
-                    Text(
-                        text = "Barometru indisponibil. Folosește modul manual (slider).",
-                        fontSize = 14.sp,
-                        color = Color.Black
-                    )
-                }
-
-                Text(text = "Viteza vântului: ${wind.toInt()} km/h", fontSize = 18.sp, color = Color.Black)
-                Slider(
-                    value = wind,
-                    onValueChange = { w ->
-                        wind = (w / 10f).roundToInt() * 10f
-                    },
-                    valueRange = 0f..120f,
-                    steps = 11,
-                    colors = sliderColors
-                )
-
-                Text(text = "Acoperire nori: ${cloudCoverage.toInt()}%", fontSize = 18.sp, color = Color.Black)
-                Slider(
-                    value = cloudCoverage,
-                    onValueChange = { value ->
-                        cloudCoverage = (value / 20f).roundToInt() * 20f
-                    },
-                    valueRange = 0f..100f,
-                    steps = 4,
-                    colors = sliderColors
-                )
 
                 Spacer(modifier = Modifier.height(32.dp))
 
                 Button(
                     onClick = { navController.navigate(Routes.AI_SIMULATION) },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(58.dp),
+                    shape = RoundedCornerShape(22.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.White.copy(alpha = 0.20f),
+                        contentColor = Color.White
+                    ),
+                    elevation = ButtonDefaults.buttonElevation(
+                        defaultElevation = 10.dp,
+                        pressedElevation = 14.dp
+                    )
                 ) {
-                    Text("Simulare bazată pe AI")
+                    Text(
+                        text = "Simulare bazată pe AI",
+                        fontSize = 17.sp
+                    )
                 }
 
                 WeatherDisplayCard(
@@ -442,31 +553,81 @@ fun WeatherDisplayCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(180.dp),
+            .height(220.dp)
+            .clip(RoundedCornerShape(28.dp))
+            .border(
+                width = 1.dp,
+                color = Color.White.copy(alpha = 0.35f),
+                shape = RoundedCornerShape(28.dp)
+            ),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer
+            containerColor = Color.White.copy(alpha = 0.18f)
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 14.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
+                .padding(horizontal = 20.dp, vertical = 18.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            Text(
+                text = "Condiția meteo simulată",
+                fontSize = 15.sp,
+                color = Color.White.copy(alpha = 0.92f)
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
             Image(
                 painter = painterResource(id = iconRes),
                 contentDescription = description,
-                modifier = Modifier.size(98.dp)
+                modifier = Modifier.size(104.dp)
             )
-            Spacer(modifier = Modifier.height(12.dp))
+
+            Spacer(modifier = Modifier.height(14.dp))
+
             Text(
                 text = description,
-                fontSize = 22.sp,
-                color = MaterialTheme.colorScheme.onSecondaryContainer
+                fontSize = 24.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.White
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Text(
+                text = "${temperature.toInt()}°C • ${humidity.toInt()}% • ${wind.toInt()} km/h",
+                fontSize = 14.sp,
+                color = Color.White.copy(alpha = 0.88f)
             )
         }
+    }
+}
+
+@Composable
+fun WeatherSliderLabel(
+    title: String,
+    value: String
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = title,
+            fontSize = 16.sp,
+            color = Color.White.copy(alpha = 0.92f)
+        )
+
+        Text(
+            text = value,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = Color.White
+        )
     }
 }
 
@@ -476,7 +637,8 @@ fun AnimatedSky(
     isStormy: Boolean,
     pressureTrend: PressureTrend,
     windSpeed: Float,
-    humidity: Float
+    humidity: Float,
+    weatherDescription: String
 ) {
     val infinite = rememberInfiniteTransition(label = "sky")
     val windFactor = (windSpeed / 120f).coerceIn(0f, 1f)
@@ -546,7 +708,20 @@ fun AnimatedSky(
 
     val cloudAlphaBase = (cloudCoverage / 100f).coerceIn(0f, 1f)
 
-    // dacă e furtună sau presiunea scade -> mai multă “dramă” la nori
+    val conditionCloudBoost = when (weatherDescription) {
+        "Însorit" -> -0.18f
+        "Predominant însorit" -> -0.10f
+        "Parțial însorit" -> -0.04f
+        "Nori și soare" -> 0.06f
+        "Predominant noros" -> 0.16f
+        "Noros" -> 0.24f
+        "Ploaie", "Ploaie ușoară", "Ploaie intensa" -> 0.22f
+        "Furtună", "Furtună cu soare" -> 0.30f
+        "Ninsoare", "Ninsoare usoara", "Ninsoare intensa" -> 0.18f
+        "Ceață" -> 0.10f
+        else -> 0f
+    }
+
     val stormBoost = when {
         isStormy -> 0.35f
         pressureTrend == PressureTrend.RAPID_FALL -> 0.25f
@@ -554,9 +729,116 @@ fun AnimatedSky(
         else -> 0f
     }
 
-    val cloudsAlpha = (cloudAlphaBase + stormBoost).coerceIn(0f, 1f)
-    val sunAlpha = (1f - cloudAlphaBase * 0.9f).coerceIn(0f, 1f)
-    val hazeAlpha = (((humidity - 60f) / 40f).coerceIn(0f, 1f) * (1f - cloudsAlpha * 0.5f))
+    val sunConditionFactor = when (weatherDescription) {
+        "Însorit" -> 1.0f
+        "Predominant însorit" -> 0.92f
+        "Parțial însorit" -> 0.78f
+        "Nori și soare" -> 0.62f
+        "Predominant noros" -> 0.32f
+        "Noros" -> 0.18f
+        "Ploaie", "Ploaie ușoară", "Ploaie intensa" -> 0.10f
+        "Furtună" -> 0.04f
+        "Furtună cu soare" -> 0.18f
+        "Ninsoare", "Ninsoare usoara", "Ninsoare intensa" -> 0.22f
+        "Ceață" -> 0.12f
+        else -> 0.7f
+    }
+
+    val hazeBoost = when (weatherDescription) {
+        "Ceață" -> 0.55f
+        "Ninsoare", "Ninsoare usoara", "Ninsoare intensa" -> 0.18f
+        "Ploaie", "Ploaie ușoară", "Ploaie intensa" -> 0.10f
+        "Predominant noros", "Noros" -> 0.08f
+        else -> 0f
+    }
+
+    val cloudsAlpha = (cloudAlphaBase + conditionCloudBoost + stormBoost).coerceIn(0f, 1f)
+    val sunAlpha = ((1f - cloudAlphaBase * 0.9f) * sunConditionFactor).coerceIn(0f, 1f)
+    val hazeAlpha = (
+        ((humidity - 60f) / 40f).coerceIn(0f, 1f) * (1f - cloudsAlpha * 0.35f) + hazeBoost
+    ).coerceIn(0f, 1f)
+    
+    val skyColors = when (weatherDescription) {
+        "Însorit" -> listOf(
+            Color(0xFF2D77D3),
+            Color(0xFF5FA9F0),
+            Color(0xFFCFE8FF)
+        )
+
+        "Predominant însorit" -> listOf(
+            Color(0xFF367DCE),
+            Color(0xFF75B2EC),
+            Color(0xFFD8EDFF)
+        )
+
+        "Parțial însorit" -> listOf(
+            Color(0xFF3A83D4),
+            Color(0xFF82BDEB),
+            Color(0xFFDDEDF8)
+        )
+
+        "Nori și soare" -> listOf(
+            Color(0xFF5578B0),
+            Color(0xFF8FA8C3),
+            Color(0xFFD7E0E8)
+        )
+
+        "Predominant noros" -> listOf(
+            Color(0xFF5F748A),
+            Color(0xFF95A5B3),
+            Color(0xFFD6DEE4)
+        )
+
+        "Noros" -> listOf(
+            Color(0xFF4E6276),
+            Color(0xFF8598A8),
+            Color(0xFFC8D2DA)
+        )
+
+        "Ploaie", "Ploaie ușoară", "Ploaie intensa" -> listOf(
+            Color(0xFF3B4F60),
+            Color(0xFF657A8A),
+            Color(0xFFAEBBC5)
+        )
+
+        "Furtună", "Furtună cu soare" -> listOf(
+            Color(0xFF2A3846),
+            Color(0xFF485C6D),
+            Color(0xFF7A8C99)
+        )
+
+        "Ninsoare", "Ninsoare usoara", "Ninsoare intensa" -> listOf(
+            Color(0xFF93A1AF),
+            Color(0xFFC4D1DB),
+            Color(0xFFF0F5FA)
+        )
+
+        "Ceață" -> listOf(
+            Color(0xFF8FA0AC),
+            Color(0xFFBCC7CF),
+            Color(0xFFE8EDF1)
+        )
+
+        else -> listOf(
+            Color(0xFF3E88D8),
+            Color(0xFF7DB9EC),
+            Color(0xFFD8ECFD)
+        )
+    }
+
+    val isOvercastScene = weatherDescription in setOf(
+        "Predominant noros",
+        "Noros",
+        "Ploaie",
+        "Ploaie ușoară",
+        "Ploaie intensa",
+        "Furtună",
+        "Furtună cu soare",
+        "Ninsoare",
+        "Ninsoare usoara",
+        "Ninsoare intensa",
+        "Ceață"
+    )
 
     Canvas(modifier = Modifier.fillMaxSize()) {
         val w = size.width
@@ -564,13 +846,94 @@ fun AnimatedSky(
 
         drawRect(
             brush = Brush.verticalGradient(
+                colors = skyColors,
+                startY = 0f,
+                endY = h
+            )
+        )
+
+        drawRect(
+            brush = Brush.verticalGradient(
                 colors = listOf(
-                    Color.White.copy(alpha = 0.18f),
+                    Color.White.copy(alpha = 0.15f),
                     Color.Transparent,
-                    Color.White.copy(alpha = 0.1f)
+                    Color.White.copy(alpha = 0.08f)
                 )
             )
         )
+
+        if (!isOvercastScene) {
+            drawRect(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFFFFF2C4).copy(alpha = 0.12f * sunAlpha),
+                        Color.Transparent,
+                        Color(0xFFFFE7B2).copy(alpha = 0.07f * sunAlpha)
+                    ),
+                    startY = h * 0.06f,
+                    endY = h
+                )
+            )
+        }
+
+        val stormMoodAlpha = when (weatherDescription) {
+            "Ploaie", "Ploaie ușoară", "Ploaie intensa" -> 0.18f
+            "Furtună" -> 0.30f
+            "Furtună cu soare" -> 0.22f
+            else -> 0f
+        }
+
+        if (stormMoodAlpha > 0f) {
+            drawRect(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFF1C313A).copy(alpha = stormMoodAlpha * 0.75f),
+                        Color(0xFF37474F).copy(alpha = stormMoodAlpha * 0.55f),
+                        Color.Transparent
+                    ),
+                    startY = 0f,
+                    endY = h * 0.58f
+                )
+            )
+
+            drawRect(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        Color.Transparent,
+                        Color(0xFF263238).copy(alpha = stormMoodAlpha * 0.22f),
+                        Color(0xFF102027).copy(alpha = stormMoodAlpha * 0.34f)
+                    ),
+                    startY = h * 0.45f,
+                    endY = h
+                )
+            )
+        }
+
+        val coldLightAlpha = when (weatherDescription) {
+            "Ninsoare", "Ninsoare usoara", "Ninsoare intensa" -> 0.22f
+            "Ceață" -> 0.18f
+            else -> 0f
+        }
+
+        if (coldLightAlpha > 0f) {
+            drawRect(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFFE3F2FD).copy(alpha = coldLightAlpha * 0.55f),
+                        Color(0xFFF3F8FF).copy(alpha = coldLightAlpha * 0.35f),
+                        Color.Transparent
+                    ),
+                    startY = 0f,
+                    endY = h * 0.52f
+                )
+            )
+
+            drawCircle(
+                color = Color(0xFFF8FBFF).copy(alpha = coldLightAlpha * 0.24f),
+                radius = w * 0.34f,
+                center = Offset(w * 0.78f, h * 0.20f)
+            )
+        }
 
         // 🌞 Sun (sus-stânga) cu glow
         if (sunAlpha > 0.02f) {
@@ -588,59 +951,98 @@ fun AnimatedSky(
             )
         }
 
-        // ☁️ Clouds (straturi)
+        // Cloud layout is tuned per weather type to match visual references.
         if (cloudsAlpha > 0.02f) {
             fun xPos(speed: Float): Float {
                 val speedBoost = speed + (windFactor * 0.75f)
                 return (-0.35f * w) + (cloudMove * (1.85f * w) * speedBoost)
             }
 
-            val cloudColor = if (isStormy || pressureTrend == PressureTrend.RAPID_FALL)
-                Color(0xFF90A4AE).copy(alpha = cloudsAlpha * 0.9f)
-            else
-                Color.White.copy(alpha = cloudsAlpha * 0.85f)
+            val cloudProfile = cloudProfileFor(
+                weatherDescription = weatherDescription,
+                alpha = cloudsAlpha,
+                isStormy = isStormy,
+                pressureTrend = pressureTrend
+            )
 
-            drawCloudStrip(
-                baseX = xPos(0.60f),
-                baseY = h * (0.20f + cloudBob * 0.01f),
-                scale = 1.2f,
-                color = cloudColor,
-                wobble = cloudBob
-            )
-            drawCloudStrip(
-                baseX = xPos(0.90f),
-                baseY = h * (0.33f - cloudBob * 0.012f),
-                scale = 1.5f,
-                color = cloudColor.copy(alpha = cloudColor.alpha * 0.90f),
-                wobble = -cloudBob
-            )
-            drawCloudStrip(
-                baseX = xPos(1.15f),
-                baseY = h * (0.47f + cloudBob * 0.009f),
-                scale = 1.8f,
-                color = cloudColor.copy(alpha = cloudColor.alpha * 0.80f),
-                wobble = cloudBob
-            )
-            drawCloudStrip(
-                baseX = xPos(1.35f),
-                baseY = h * (0.57f - cloudBob * 0.008f),
-                scale = 1.35f,
-                color = cloudColor.copy(alpha = cloudColor.alpha * 0.68f),
-                wobble = -cloudBob
-            )
+            cloudProfile.bands.forEach { band ->
+                val wobble = if (band.invertBob) -cloudBob else cloudBob
+                drawCloudStrip(
+                    baseX = xPos(band.speed),
+                    baseY = h * (band.yRatio + wobble * band.bobFactor),
+                    scale = band.scale,
+                    color = cloudProfile.baseColor.copy(alpha = (cloudProfile.baseColor.alpha * band.alphaMul).coerceIn(0f, 1f)),
+                    wobble = wobble,
+                    flatness = band.flatness,
+                    darkness = band.darkness,
+                    puffiness = band.puffiness
+                )
+            }
         }
 
         if (hazeAlpha > 0.02f) {
+            val hazeTopColor = when (weatherDescription) {
+                "Ninsoare", "Ninsoare usoara", "Ninsoare intensa" -> Color(0xFFF3F8FF)
+                "Ceață" -> Color(0xFFF5F7FA)
+                else -> Color.White
+            }
+
+            val hazeMidColor = when (weatherDescription) {
+                "Ninsoare", "Ninsoare usoara", "Ninsoare intensa" -> Color(0xFFEAF3FF)
+                "Ceață" -> Color(0xFFECEFF1)
+                else -> Color.White
+            }
+
             drawRect(
                 brush = Brush.verticalGradient(
                     colors = listOf(
-                        Color.White.copy(alpha = hazeAlpha * 0.18f),
-                        Color.White.copy(alpha = hazeAlpha * 0.08f),
+                        hazeTopColor.copy(alpha = hazeAlpha * 0.20f),
+                        hazeMidColor.copy(alpha = hazeAlpha * 0.10f),
                         Color.Transparent
                     ),
                     startY = h * 0.05f,
                     endY = h * 0.8f
                 )
+            )
+        }
+
+        val fogAlpha = when (weatherDescription) {
+            "Ceață" -> 0.30f
+            "Predominant noros" -> 0.12f
+            "Noros" -> 0.16f
+            "Ninsoare", "Ninsoare usoara", "Ninsoare intensa" -> 0.14f
+            else -> 0f
+        }
+
+        if (fogAlpha > 0f) {
+            drawRect(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        Color.Transparent,
+                        Color.White.copy(alpha = fogAlpha * 0.40f),
+                        Color.White.copy(alpha = fogAlpha * 0.70f)
+                    ),
+                    startY = h * 0.38f,
+                    endY = h
+                )
+            )
+
+            drawCircle(
+                color = Color.White.copy(alpha = fogAlpha * 0.22f),
+                radius = w * 0.42f,
+                center = Offset(w * 0.25f, h * 0.78f)
+            )
+
+            drawCircle(
+                color = Color.White.copy(alpha = fogAlpha * 0.18f),
+                radius = w * 0.36f,
+                center = Offset(w * 0.72f, h * 0.82f)
+            )
+
+            drawCircle(
+                color = Color.White.copy(alpha = fogAlpha * 0.14f),
+                radius = w * 0.30f,
+                center = Offset(w * 0.52f, h * 0.88f)
             )
         }
 
@@ -650,46 +1052,227 @@ fun AnimatedSky(
     }
 }
 
+private data class CloudBandSpec(
+    val speed: Float,
+    val yRatio: Float,
+    val scale: Float,
+    val alphaMul: Float,
+    val flatness: Float,
+    val darkness: Float,
+    val puffiness: Float,
+    val bobFactor: Float,
+    val invertBob: Boolean
+)
+
+private data class CloudProfile(
+    val baseColor: Color,
+    val bands: List<CloudBandSpec>
+)
+
+private fun cloudProfileFor(
+    weatherDescription: String,
+    alpha: Float,
+    isStormy: Boolean,
+    pressureTrend: PressureTrend
+): CloudProfile {
+    val pressureDarkBoost = when (pressureTrend) {
+        PressureTrend.RAPID_FALL -> 0.14f
+        PressureTrend.FALLING -> 0.08f
+        else -> 0f
+    }
+
+    return when (weatherDescription) {
+        "Însorit" -> CloudProfile(
+            baseColor = Color(0xFFF6FBFF).copy(alpha = alpha * 0.30f),
+            bands = listOf(
+                CloudBandSpec(0.58f, 0.18f, 0.78f, 0.90f, 0.12f, 0.82f, 0.22f, 0.006f, false),
+                CloudBandSpec(1.10f, 0.28f, 0.66f, 0.75f, 0.10f, 0.80f, 0.18f, 0.004f, true)
+            )
+        )
+
+        "Predominant însorit" -> CloudProfile(
+            baseColor = Color(0xFFF3F8FE).copy(alpha = alpha * 0.46f),
+            bands = listOf(
+                CloudBandSpec(0.56f, 0.18f, 0.92f, 1.00f, 0.16f, 0.86f, 0.34f, 0.008f, false),
+                CloudBandSpec(0.92f, 0.29f, 0.98f, 0.88f, 0.14f, 0.84f, 0.30f, 0.009f, true),
+                CloudBandSpec(1.32f, 0.42f, 0.82f, 0.72f, 0.18f, 0.88f, 0.26f, 0.006f, false)
+            )
+        )
+
+        "Parțial însorit" -> CloudProfile(
+            baseColor = Color(0xFFF2F7FD).copy(alpha = alpha * 0.66f),
+            bands = listOf(
+                CloudBandSpec(0.54f, 0.16f, 1.18f, 1.00f, 0.24f, 0.92f, 0.58f, 0.010f, false),
+                CloudBandSpec(0.88f, 0.28f, 1.34f, 0.95f, 0.30f, 0.94f, 0.62f, 0.011f, true),
+                CloudBandSpec(1.14f, 0.41f, 1.24f, 0.84f, 0.34f, 0.98f, 0.56f, 0.009f, false),
+                CloudBandSpec(1.36f, 0.54f, 1.06f, 0.68f, 0.36f, 1.00f, 0.50f, 0.007f, true)
+            )
+        )
+
+        "Nori și soare" -> CloudProfile(
+            baseColor = Color(0xFFE8EEF4).copy(alpha = alpha * 0.78f),
+            bands = listOf(
+                CloudBandSpec(0.52f, 0.17f, 1.36f, 1.00f, 0.42f, 1.06f, 0.62f, 0.011f, false),
+                CloudBandSpec(0.84f, 0.29f, 1.56f, 0.95f, 0.48f, 1.12f, 0.58f, 0.012f, true),
+                CloudBandSpec(1.10f, 0.42f, 1.52f, 0.86f, 0.52f, 1.14f, 0.52f, 0.009f, false),
+                CloudBandSpec(1.34f, 0.56f, 1.24f, 0.74f, 0.56f, 1.16f, 0.46f, 0.007f, true)
+            )
+        )
+
+        "Predominant noros" -> CloudProfile(
+            baseColor = Color(0xFFDBE4EC).copy(alpha = alpha * 0.88f),
+            bands = listOf(
+                CloudBandSpec(0.50f, 0.16f, 1.72f, 1.00f, 0.62f, 1.18f, 0.40f, 0.010f, false),
+                CloudBandSpec(0.80f, 0.28f, 1.98f, 0.96f, 0.68f, 1.24f, 0.36f, 0.011f, true),
+                CloudBandSpec(1.06f, 0.40f, 2.06f, 0.90f, 0.72f, 1.28f, 0.34f, 0.009f, false),
+                CloudBandSpec(1.28f, 0.53f, 1.86f, 0.78f, 0.74f, 1.30f, 0.30f, 0.007f, true)
+            )
+        )
+
+        "Noros" -> CloudProfile(
+            baseColor = Color(0xFFD2DCE6).copy(alpha = alpha * 0.95f),
+            bands = listOf(
+                CloudBandSpec(0.48f, 0.14f, 1.96f, 1.00f, 0.74f, 1.28f + pressureDarkBoost, 0.30f, 0.009f, false),
+                CloudBandSpec(0.76f, 0.25f, 2.22f, 0.98f, 0.80f, 1.36f + pressureDarkBoost, 0.28f, 0.010f, true),
+                CloudBandSpec(0.98f, 0.36f, 2.28f, 0.94f, 0.84f, 1.42f + pressureDarkBoost, 0.26f, 0.009f, false),
+                CloudBandSpec(1.20f, 0.48f, 2.06f, 0.86f, 0.86f, 1.44f + pressureDarkBoost, 0.24f, 0.008f, true),
+                CloudBandSpec(1.40f, 0.60f, 1.80f, 0.74f, 0.88f, 1.46f + pressureDarkBoost, 0.22f, 0.006f, false)
+            )
+        )
+
+        "Ploaie", "Ploaie ușoară", "Ploaie intensa" -> CloudProfile(
+            baseColor = Color(0xFFC5D0D9).copy(alpha = alpha * 0.92f),
+            bands = listOf(
+                CloudBandSpec(0.52f, 0.13f, 2.05f, 1.00f, 0.82f, 1.40f + pressureDarkBoost, 0.26f, 0.008f, false),
+                CloudBandSpec(0.78f, 0.24f, 2.36f, 0.98f, 0.88f, 1.48f + pressureDarkBoost, 0.24f, 0.010f, true),
+                CloudBandSpec(1.00f, 0.35f, 2.40f, 0.94f, 0.90f, 1.52f + pressureDarkBoost, 0.22f, 0.009f, false),
+                CloudBandSpec(1.20f, 0.46f, 2.18f, 0.86f, 0.92f, 1.56f + pressureDarkBoost, 0.22f, 0.007f, true),
+                CloudBandSpec(1.38f, 0.58f, 1.92f, 0.76f, 0.94f, 1.60f + pressureDarkBoost, 0.20f, 0.006f, false)
+            )
+        )
+
+        "Furtună" -> CloudProfile(
+            baseColor = Color(0xFFB5C1CC).copy(alpha = alpha * 0.94f),
+            bands = listOf(
+                CloudBandSpec(0.56f, 0.12f, 2.25f, 1.00f, 0.90f, 1.70f, 0.22f, 0.006f, false),
+                CloudBandSpec(0.80f, 0.22f, 2.58f, 0.98f, 0.94f, 1.80f, 0.20f, 0.007f, true),
+                CloudBandSpec(1.00f, 0.33f, 2.66f, 0.96f, 0.95f, 1.88f, 0.18f, 0.007f, false),
+                CloudBandSpec(1.18f, 0.44f, 2.46f, 0.88f, 0.96f, 1.92f, 0.18f, 0.006f, true),
+                CloudBandSpec(1.36f, 0.56f, 2.10f, 0.78f, 0.96f, 1.96f, 0.16f, 0.005f, false)
+            )
+        )
+
+        "Furtună cu soare" -> CloudProfile(
+            baseColor = Color(0xFFC5CFD8).copy(alpha = alpha * if (isStormy) 0.88f else 0.78f),
+            bands = listOf(
+                CloudBandSpec(0.52f, 0.13f, 1.98f, 1.00f, 0.76f, 1.42f, 0.28f, 0.009f, false),
+                CloudBandSpec(0.86f, 0.25f, 2.18f, 0.94f, 0.82f, 1.50f, 0.24f, 0.010f, true),
+                CloudBandSpec(1.12f, 0.39f, 1.92f, 0.78f, 0.70f, 1.34f, 0.36f, 0.008f, false)
+            )
+        )
+
+        "Ninsoare", "Ninsoare usoara", "Ninsoare intensa" -> CloudProfile(
+            baseColor = Color(0xFFE8EEF4).copy(alpha = alpha * 0.86f),
+            bands = listOf(
+                CloudBandSpec(0.46f, 0.16f, 1.66f, 1.00f, 0.66f, 1.08f, 0.34f, 0.010f, false),
+                CloudBandSpec(0.74f, 0.30f, 1.86f, 0.94f, 0.72f, 1.12f, 0.32f, 0.011f, true),
+                CloudBandSpec(1.00f, 0.44f, 1.78f, 0.84f, 0.76f, 1.14f, 0.28f, 0.009f, false),
+                CloudBandSpec(1.24f, 0.57f, 1.56f, 0.70f, 0.78f, 1.16f, 0.24f, 0.007f, true)
+            )
+        )
+
+        "Ceață" -> CloudProfile(
+            baseColor = Color(0xFFEFF3F7).copy(alpha = alpha * 0.72f),
+            bands = listOf(
+                CloudBandSpec(0.40f, 0.20f, 1.98f, 0.92f, 0.96f, 0.92f, 0.16f, 0.006f, false),
+                CloudBandSpec(0.66f, 0.34f, 2.18f, 0.86f, 0.98f, 0.94f, 0.14f, 0.007f, true),
+                CloudBandSpec(0.92f, 0.50f, 2.10f, 0.74f, 0.99f, 0.96f, 0.12f, 0.006f, false)
+            )
+        )
+
+        else -> CloudProfile(
+            baseColor = Color(0xFFE6EDF5).copy(alpha = alpha * 0.74f),
+            bands = listOf(
+                CloudBandSpec(0.54f, 0.18f, 1.22f, 1.00f, 0.32f, 0.98f, 0.48f, 0.009f, false),
+                CloudBandSpec(0.90f, 0.31f, 1.40f, 0.90f, 0.38f, 1.04f, 0.46f, 0.010f, true),
+                CloudBandSpec(1.18f, 0.46f, 1.26f, 0.76f, 0.42f, 1.06f, 0.42f, 0.008f, false)
+            )
+        )
+    }
+}
+
 private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawSunWithRays(
     center: Offset,
     radius: Float,
     sunAlpha: Float,
     rayRotation: Float
 ) {
+    val outerCoronaRadius = radius * 5.6f
+    val midCoronaRadius = radius * 3.6f
+
     drawCircle(
         brush = Brush.radialGradient(
             colors = listOf(
-                Color(0xFFFFF59D).copy(alpha = 0.58f * sunAlpha),
-                Color(0xFFFFE082).copy(alpha = 0.2f * sunAlpha),
+                Color(0xFFFFF3B0).copy(alpha = 0.16f * sunAlpha),
+                Color(0xFFFFE596).copy(alpha = 0.09f * sunAlpha),
                 Color.Transparent
             ),
             center = center,
-            radius = radius * 3f
+            radius = outerCoronaRadius
         ),
-        radius = radius * 3f,
+        radius = outerCoronaRadius,
         center = center
     )
 
-    for (i in 0 until 12) {
-        rotate(degrees = rayRotation + i * 30f, pivot = center) {
+    drawCircle(
+        brush = Brush.radialGradient(
+            colors = listOf(
+                Color(0xFFFFF6C7).copy(alpha = 0.48f * sunAlpha),
+                Color(0xFFFFE39A).copy(alpha = 0.18f * sunAlpha),
+                Color.Transparent
+            ),
+            center = center,
+            radius = midCoronaRadius
+        ),
+        radius = midCoronaRadius,
+        center = center
+    )
+
+    for (i in 0 until 8) {
+        rotate(degrees = rayRotation + i * 45f, pivot = center) {
             drawLine(
-                color = Color(0xFFFFD54F).copy(alpha = 0.28f * sunAlpha),
-                start = Offset(center.x, center.y - radius * 1.45f),
-                end = Offset(center.x, center.y - radius * 2.15f),
-                strokeWidth = radius * 0.12f
+                color = Color(0xFFFFE8AB).copy(alpha = 0.11f * sunAlpha),
+                start = Offset(center.x, center.y - radius * 1.38f),
+                end = Offset(center.x, center.y - radius * 2.85f),
+                strokeWidth = radius * 0.07f
             )
         }
     }
 
     drawCircle(
-        color = Color(0xFFFFF176).copy(alpha = 0.92f * sunAlpha),
+        brush = Brush.radialGradient(
+            colors = listOf(
+                Color(0xFFFFFEF1).copy(alpha = 0.96f * sunAlpha),
+                Color(0xFFFFF2B0).copy(alpha = 0.93f * sunAlpha),
+                Color(0xFFFFD777).copy(alpha = 0.88f * sunAlpha)
+            ),
+            center = center,
+            radius = radius
+        ),
         radius = radius,
         center = center
     )
+
     drawCircle(
-        color = Color.White.copy(alpha = 0.28f * sunAlpha),
-        radius = radius * 0.55f,
-        center = Offset(center.x - radius * 0.2f, center.y - radius * 0.2f)
+        color = Color.White.copy(alpha = 0.22f * sunAlpha),
+        radius = radius * 0.45f,
+        center = Offset(center.x - radius * 0.18f, center.y - radius * 0.20f)
+    )
+
+    drawCircle(
+        color = Color(0xFFFFC96C).copy(alpha = 0.20f * sunAlpha),
+        radius = radius * 0.84f,
+        center = center
     )
 }
 
@@ -698,41 +1281,81 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawCloudStrip(
     baseY: Float,
     scale: Float,
     color: Color,
-    wobble: Float
+    wobble: Float,
+    flatness: Float = 0.40f,
+    darkness: Float = 1f,
+    puffiness: Float = 0.5f
 ) {
     val r = size.minDimension * 0.06f * scale
     val x = baseX
     val y = baseY + (r * 0.08f * wobble)
+    val flat = flatness.coerceIn(0f, 1f)
+    val puff = puffiness.coerceIn(0f, 1f)
 
-    val shadowColor = Color(0xFF37474F).copy(alpha = color.alpha * 0.12f)
-    val highlightColor = Color.White.copy(alpha = color.alpha * 0.25f)
+    val shadowColor = Color(0xFF4A5C6D).copy(alpha = (color.alpha * 0.14f * darkness).coerceIn(0f, 1f))
+    val midTone = color.copy(alpha = (color.alpha * (0.95f - flat * 0.10f)).coerceIn(0f, 1f))
+    val lowerTone = Color(
+        red = (color.red * (0.90f - flat * 0.10f)).coerceIn(0f, 1f),
+        green = (color.green * (0.92f - flat * 0.12f)).coerceIn(0f, 1f),
+        blue = (color.blue * (0.96f - flat * 0.08f)).coerceIn(0f, 1f),
+        alpha = (color.alpha * (0.90f + flat * 0.04f)).coerceIn(0f, 1f)
+    )
+    val highlightColor = Color.White.copy(alpha = (color.alpha * (0.25f - flat * 0.07f)).coerceIn(0f, 1f))
 
-    // “pufuri”
-    drawCircle(color = color, radius = r * 0.95f, center = Offset(x + r * 1.0f, y))
-    drawCircle(color = color, radius = r * 1.15f, center = Offset(x + r * 2.1f, y - r * 0.35f))
-    drawCircle(color = color, radius = r * 1.0f, center = Offset(x + r * 3.3f, y))
-    drawCircle(color = color, radius = r * 0.85f, center = Offset(x + r * 4.3f, y + r * 0.1f))
-
-    // “corp” (oval)
     drawRoundRect(
-        color = color,
-        topLeft = Offset(x + r * 0.6f, y),
-        size = Size(width = r * 4.0f, height = r * 1.4f),
+        color = shadowColor,
+        topLeft = Offset(x + r * 0.6f, y + r * (0.82f + flat * 0.14f)),
+        size = Size(width = r * 4.8f, height = r * (0.90f + flat * 0.22f)),
         cornerRadius = androidx.compose.ui.geometry.CornerRadius(r, r)
     )
 
-    // umbre + highlight pentru volum
+    val puffBoost = puff * 0.26f
+    drawCircle(
+        color = midTone,
+        radius = r * (0.96f - flat * 0.18f + puffBoost),
+        center = Offset(x + r * 1.0f, y + r * (0.20f + flat * 0.10f - puff * 0.08f))
+    )
+    drawCircle(
+        color = midTone,
+        radius = r * (1.25f - flat * 0.28f + puffBoost),
+        center = Offset(x + r * 2.1f, y - r * (0.36f - flat * 0.18f + puff * 0.10f))
+    )
+    drawCircle(
+        color = midTone,
+        radius = r * (1.10f - flat * 0.24f + puffBoost),
+        center = Offset(x + r * 3.25f, y - r * (0.06f - flat * 0.10f + puff * 0.06f))
+    )
+    drawCircle(
+        color = midTone,
+        radius = r * (0.92f - flat * 0.20f + puffBoost),
+        center = Offset(x + r * 4.35f, y + r * (0.15f + flat * 0.08f - puff * 0.05f))
+    )
+
     drawRoundRect(
-        color = shadowColor,
-        topLeft = Offset(x + r * 0.8f, y + r * 0.8f),
-        size = Size(width = r * 3.6f, height = r * 0.65f),
-        cornerRadius = androidx.compose.ui.geometry.CornerRadius(r, r)
+        color = lowerTone,
+        topLeft = Offset(x + r * 0.6f, y + r * (0.05f + flat * 0.12f)),
+        size = Size(width = r * 4.7f, height = r * (1.45f - flat * 0.34f)),
+        cornerRadius = androidx.compose.ui.geometry.CornerRadius(r * 1.15f, r * 1.15f)
     )
 
     drawCircle(
         color = highlightColor,
-        radius = r * 0.48f,
-        center = Offset(x + r * 1.55f, y - r * 0.24f)
+        radius = r * (0.40f - flat * 0.08f),
+        center = Offset(x + r * 1.55f, y - r * (0.20f - flat * 0.10f))
     )
+
+    drawCircle(
+        color = Color.White.copy(alpha = (color.alpha * (0.13f - flat * 0.05f)).coerceIn(0f, 1f)),
+        radius = r * (0.32f - flat * 0.12f),
+        center = Offset(x + r * 2.55f, y - r * (0.30f - flat * 0.14f))
+    )
+
+    if (puff > 0.45f) {
+        drawCircle(
+            color = Color.White.copy(alpha = (color.alpha * 0.10f * puff).coerceIn(0f, 1f)),
+            radius = r * (0.40f + puff * 0.16f),
+            center = Offset(x + r * 3.65f, y - r * (0.20f + puff * 0.10f))
+        )
+    }
 }
 
