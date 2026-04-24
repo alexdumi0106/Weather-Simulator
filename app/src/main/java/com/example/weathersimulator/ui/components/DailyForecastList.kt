@@ -1,6 +1,7 @@
 package com.example.weathersimulator.ui.components
 
 import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -10,10 +11,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
@@ -29,9 +30,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.weathersimulator.ui.screens.main.DailyForecastItemUi
 import com.example.weathersimulator.ui.weather.WeatherIconRules
@@ -120,7 +125,6 @@ private fun DailyForecastRow(
     val startFraction = (itemMin - globalMin).toFloat() / totalRange
     val endFraction = (itemMax - globalMin).toFloat() / totalRange
     val activeFraction = (endFraction - startFraction).coerceAtLeast(0.08f)
-    val trackWidth = 118.dp
 
     Column(
         modifier = Modifier
@@ -132,45 +136,54 @@ private fun DailyForecastRow(
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 text = item.dayLabel,
                 style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
                 color = Color.White,
-                modifier = Modifier.weight(1f)
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.widthIn(min = 72.dp, max = 108.dp)
             )
 
             Image(
                 painter = painterResource(id = visual.iconRes),
                 contentDescription = "Icon meteo zilnic",
-                modifier = Modifier
-                    .padding(horizontal = 8.dp)
-                    .width(38.dp)
+                modifier = Modifier.width(24.dp)
             )
 
             Text(
                 text = item.minTemperature,
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color.White.copy(alpha = 0.72f),
-                modifier = Modifier.padding(end = 8.dp)
+                maxLines = 1,
+                modifier = Modifier.width(30.dp)
             )
 
-            Box(
+            Canvas(
                 modifier = Modifier
-                    .width(trackWidth)
+                    .weight(1f)
                     .height(6.dp)
-                    .clip(RoundedCornerShape(99.dp))
-                    .background(Color(0x55A6C4D8))
             ) {
-                Box(
-                    modifier = Modifier
-                        .offset(x = trackWidth * startFraction)
-                        .width(trackWidth * activeFraction)
-                        .height(6.dp)
-                        .clip(RoundedCornerShape(99.dp))
-                        .background(Color(0xFFB8E46A))
+                val radius = size.height / 2f
+                drawRoundRect(
+                    color = Color(0x55A6C4D8),
+                    cornerRadius = CornerRadius(radius, radius)
+                )
+
+                val safeStart = startFraction.coerceIn(0f, 1f)
+                val safeActive = activeFraction.coerceIn(0.08f, 1f)
+                val startX = size.width * safeStart
+                val activeWidth = (size.width * safeActive).coerceAtLeast(10f)
+                val clampedWidth = (size.width - startX).coerceAtLeast(0f).coerceAtMost(activeWidth)
+
+                drawRoundRect(
+                    color = Color(0xFFB8E46A),
+                    topLeft = Offset(startX, 0f),
+                    size = Size(clampedWidth, size.height),
+                    cornerRadius = CornerRadius(radius, radius)
                 )
             }
 
@@ -178,7 +191,8 @@ private fun DailyForecastRow(
                 text = item.maxTemperature,
                 style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
                 color = Color.White,
-                modifier = Modifier.padding(start = 8.dp)
+                maxLines = 1,
+                modifier = Modifier.width(30.dp)
             )
 
             Icon(

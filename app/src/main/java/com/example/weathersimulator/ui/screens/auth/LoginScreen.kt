@@ -1,19 +1,19 @@
 package com.example.weathersimulator.ui.screens.auth
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.example.weathersimulator.ui.viewmodel.AuthViewModel
 import com.example.weathersimulator.ui.navigation.Routes
+import com.example.weathersimulator.ui.viewmodel.AuthViewModel
 
 @Composable
 fun LoginScreen(
@@ -22,71 +22,91 @@ fun LoginScreen(
 ) {
     val state = viewModel.state.collectAsState().value
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.White)
-            .padding(24.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text("Login", style = MaterialTheme.typography.headlineMedium)
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        OutlinedTextField(
-            value = state.email,
-            onValueChange = viewModel::onEmailChange,
-            label = { Text("Email") },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        OutlinedTextField(
-            value = state.password,
-            onValueChange = viewModel::onPasswordChange,
-            label = { Text("Parolă") },
-            singleLine = true,
-            visualTransformation = PasswordVisualTransformation(),
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        if (state.error != null) {
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(state.error!!, color = MaterialTheme.colorScheme.error)
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Button(
-            onClick = { viewModel.login() },
-            enabled = !state.isLoading,
-            modifier = Modifier.fillMaxWidth()
+    AuthBackground {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 20.dp, vertical = 36.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            Text("Login")
-        }
+            Text(
+                text = "Login",
+                color = AuthTitleColor,
+                fontSize = 40.sp,
+                fontWeight = FontWeight.SemiBold
+            )
 
-        Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
-        Text(
-            "Nu ai cont? Creează unul",
-            modifier = Modifier.clickable {
-                navController.navigate("register")
+            Text(
+                text = "Accesează aplicația Weather Simulator AI",
+                color = AuthSubtitleColor,
+                fontSize = 14.sp
+            )
+
+            Spacer(modifier = Modifier.height(26.dp))
+
+            AuthGlassCard {
+                Column {
+                    AuthInputField(
+                        value = state.email,
+                        onValueChange = viewModel::onEmailChange,
+                        placeholder = "Email"
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    AuthInputField(
+                        value = state.password,
+                        onValueChange = viewModel::onPasswordChange,
+                        placeholder = "Parolă",
+                        visualTransformation = PasswordVisualTransformation()
+                    )
+
+                    if (state.error != null) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = state.error!!,
+                            color = MaterialTheme.colorScheme.error,
+                            fontSize = 13.sp
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    AuthPrimaryButton(
+                        text = "Login",
+                        onClick = { viewModel.login() },
+                        enabled = !state.isLoading
+                    )
+
+                    if (state.isLoading) {
+                        Spacer(modifier = Modifier.height(14.dp))
+                        CircularProgressIndicator(
+                            modifier = Modifier.align(Alignment.CenterHorizontally),
+                            color = AuthAccentColor,
+                            strokeWidth = 2.dp
+                        )
+                    }
+                }
             }
-        )
 
-        Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(18.dp))
 
-        Text(
-            "Ai uitat parola?",
-            modifier = Modifier.clickable {
-                navController.navigate("resetPassword")
-            }
-        )
+            Text(
+                text = "Nu ai cont? Creează unul",
+                color = AuthLinkColor,
+                modifier = Modifier.clickable { navController.navigate("register") }
+            )
 
-        if (state.isLoading) {
-            Spacer(modifier = Modifier.height(16.dp))
-            CircularProgressIndicator()
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Text(
+                text = "Ai uitat parola?",
+                color = AuthLinkColor,
+                modifier = Modifier.clickable { navController.navigate("resetPassword") }
+            )
         }
     }
 
