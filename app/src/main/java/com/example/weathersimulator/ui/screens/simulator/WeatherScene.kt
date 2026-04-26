@@ -48,13 +48,15 @@ fun WeatherScene(
             isStormy = isStormy,
             humidity = humidity,
             windSpeed = windSpeed,
-            temperature = temperature
+            temperature = temperature,
+            cloudCoverage = cloudCoverage
         )
 
         SnowLayer(
             temperature = temperature,
             humidity = humidity,
-            windSpeed = windSpeed
+            windSpeed = windSpeed,
+            cloudCoverage = cloudCoverage
         )
 
         LightningLayer(
@@ -147,9 +149,10 @@ fun RainLayer(
     isStormy: Boolean,
     humidity: Float,
     windSpeed: Float,
-    temperature: Float
+    temperature: Float,
+    cloudCoverage: Float
 ) {
-    val shouldRain = (isStormy || humidity >= 85f) && temperature > 0f
+    val shouldRain = (isStormy || (humidity >= 85f && cloudCoverage > 80f)) && temperature > 0f
     if (!shouldRain) return
 
     val infinite = rememberInfiniteTransition(label = "rain")
@@ -218,9 +221,10 @@ fun RainLayer(
 fun SnowLayer(
     temperature: Float,
     humidity: Float,
-    windSpeed: Float
+    windSpeed: Float,
+    cloudCoverage: Float
 ) {
-    val shouldSnow = temperature <= 0f && humidity >= 70f
+    val shouldSnow = temperature <= 0f && humidity >= 70f && cloudCoverage >= 80f
     if (!shouldSnow) return
 
     val infinite = rememberInfiniteTransition(label = "snow")

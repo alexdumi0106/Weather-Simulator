@@ -26,8 +26,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.Icon
-import androidx.compose.runtime.Composable
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -37,7 +36,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.runtime.Composable
+import androidx.compose.material3.Icon
+import androidx.compose.material3.ButtonDefaults
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -83,18 +86,19 @@ fun WeatherHistoryScreen(
     }
 
     Scaffold(
-        containerColor = Color(0xFFF3F7FB),
         topBar = {
             TopAppBar(
-                title = { Text("Weather History") },
+                title = { Text("Weather History", color = Color.White, style = MaterialTheme.typography.headlineSmall) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = "Back",
+                            tint = Color.White
                         )
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF182A45))
             )
         }
     ) { padding ->
@@ -104,9 +108,9 @@ fun WeatherHistoryScreen(
                 .background(
                     Brush.verticalGradient(
                         listOf(
-                            Color(0xFFF3F7FB),
-                            Color(0xFFE8EFF7),
-                            Color(0xFFFDFDFE)
+                            Color(0xFF0F1D35),
+                            Color(0xFF182A45),
+                            Color(0xFF243852)
                         )
                     )
                 )
@@ -120,7 +124,7 @@ fun WeatherHistoryScreen(
                         verticalArrangement = Arrangement.Center,
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        CircularProgressIndicator()
+                        CircularProgressIndicator(color = Color(0xFFBEE7FF))
                     }
                 }
 
@@ -133,14 +137,14 @@ fun WeatherHistoryScreen(
                         verticalArrangement = Arrangement.Center
                     ) {
                         Card(
-                            colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF4F3)),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFF3D2C2C)),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text(
                                 text = state.error,
                                 style = MaterialTheme.typography.bodyLarge,
                                 modifier = Modifier.padding(16.dp),
-                                color = Color(0xFF7A1E1E)
+                                color = Color(0xFFFF9999)
                             )
                         }
                     }
@@ -156,33 +160,47 @@ fun WeatherHistoryScreen(
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         Card(
-                            colors = CardDefaults.cardColors(containerColor = Color(0xFF214A6A)),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFF3D6FA6)),
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Column(
-                                modifier = Modifier.padding(18.dp),
-                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(
+                                        brush = Brush.verticalGradient(
+                                            listOf(
+                                                Color(0xFF3D6FA6),
+                                                Color(0xFF2C4E73)
+                                            )
+                                        )
+                                    )
+                                    .padding(18.dp)
                             ) {
-                                Text(
-                                    text = "Historical weather",
-                                    style = MaterialTheme.typography.headlineSmall,
-                                    color = Color.White
-                                )
-                                Text(
-                                    text = "Alege anul, apoi luna, ca să ajungi la ziua dorită din istoricul meteo.",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = Color.White.copy(alpha = 0.9f)
-                                )
-                                Text(
-                                    text = "Date locale din CSV",
-                                    style = MaterialTheme.typography.labelLarge,
-                                    color = Color.White.copy(alpha = 0.75f)
-                                )
+                                Column(
+                                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Text(
+                                        text = "Historical Weather",
+                                        style = MaterialTheme.typography.headlineSmall,
+                                        color = Color.White,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        text = "Alege anul, apoi luna, ca să ajungi la ziua dorită din istoricul meteo.",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = Color(0xFFBEE7FF)
+                                    )
+                                    Text(
+                                        text = "Date locale din CSV",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = Color.White.copy(alpha = 0.7f)
+                                    )
+                                }
                             }
                         }
 
                         Card(
-                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFF182A45)),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Column(
@@ -191,7 +209,9 @@ fun WeatherHistoryScreen(
                             ) {
                                 Text(
                                     text = "Select period",
-                                    style = MaterialTheme.typography.titleMedium
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = Color(0xFFBEE7FF),
+                                    fontWeight = FontWeight.Bold
                                 )
 
                                 Row(
@@ -203,7 +223,7 @@ fun WeatherHistoryScreen(
                                             modifier = Modifier
                                                 .fillMaxWidth()
                                                 .clickable { yearExpanded = true },
-                                            colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFD))
+                                            colors = CardDefaults.cardColors(containerColor = Color(0xFF243852))
                                         ) {
                                             Row(
                                                 modifier = Modifier
@@ -216,16 +236,18 @@ fun WeatherHistoryScreen(
                                                     Text(
                                                         text = "Year",
                                                         style = MaterialTheme.typography.labelMedium,
-                                                        color = Color(0xFF6A7280)
+                                                        color = Color(0xFF86A7CF)
                                                     )
                                                     Text(
                                                         text = selectedYear ?: "Select year",
-                                                        style = MaterialTheme.typography.titleMedium
+                                                        style = MaterialTheme.typography.titleMedium,
+                                                        color = Color.White
                                                     )
                                                 }
                                                 Icon(
                                                     imageVector = Icons.Filled.ArrowDropDown,
-                                                    contentDescription = null
+                                                    contentDescription = null,
+                                                    tint = Color(0xFFBEE7FF)
                                                 )
                                             }
                                         }
@@ -253,7 +275,7 @@ fun WeatherHistoryScreen(
                                             modifier = Modifier
                                                 .fillMaxWidth()
                                                 .clickable { monthExpanded = true },
-                                            colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFD))
+                                            colors = CardDefaults.cardColors(containerColor = Color(0xFF243852))
                                         ) {
                                             Row(
                                                 modifier = Modifier
@@ -266,7 +288,7 @@ fun WeatherHistoryScreen(
                                                     Text(
                                                         text = "Month",
                                                         style = MaterialTheme.typography.labelMedium,
-                                                        color = Color(0xFF6A7280)
+                                                        color = Color(0xFF86A7CF)
                                                     )
                                                     Text(
                                                         text = selectedMonthKey?.let { key ->
@@ -274,12 +296,14 @@ fun WeatherHistoryScreen(
                                                                 .firstOrNull { it.key == key }
                                                                 ?.label
                                                         } ?: "Select month",
-                                                        style = MaterialTheme.typography.titleMedium
+                                                        style = MaterialTheme.typography.titleMedium,
+                                                        color = Color.White
                                                     )
                                                 }
                                                 Icon(
                                                     imageVector = Icons.Filled.ArrowDropDown,
-                                                    contentDescription = null
+                                                    contentDescription = null,
+                                                    tint = Color(0xFFBEE7FF)
                                                 )
                                             }
                                         }
@@ -307,13 +331,13 @@ fun WeatherHistoryScreen(
                                     Text(
                                         text = "Selectează o lună pentru detalii.",
                                         style = MaterialTheme.typography.bodyMedium,
-                                        color = Color(0xFF6A7280)
+                                        color = Color(0xFF86A7CF)
                                     )
                                 } else if (state.selectedHistoryMonth != null && state.historyMonthSummary == null) {
                                     Text(
                                         text = "Nu există date pentru luna selectată.",
                                         style = MaterialTheme.typography.bodyMedium,
-                                        color = Color(0xFF6A7280)
+                                        color = Color(0xFF86A7CF)
                                     )
                                 }
                             }
@@ -322,7 +346,7 @@ fun WeatherHistoryScreen(
                         if (isMonthSelectionConfirmed) {
                             state.historyMonthSummary?.let { summary ->
                                 Card(
-                                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFD)),
+                                    colors = CardDefaults.cardColors(containerColor = Color(0xFF243852)),
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
                                     Column(
@@ -331,38 +355,40 @@ fun WeatherHistoryScreen(
                                     ) {
                                         Text(
                                             text = summary.monthLabel,
-                                            style = MaterialTheme.typography.titleLarge
+                                            style = MaterialTheme.typography.titleLarge,
+                                            color = Color(0xFFBEE7FF),
+                                            fontWeight = FontWeight.Bold
                                         )
 
                                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                             Column(modifier = Modifier.weight(1f)) {
-                                                Text("Max temperature", style = MaterialTheme.typography.labelMedium)
-                                                Text(summary.maxTemperature, style = MaterialTheme.typography.titleMedium)
+                                                Text("Max temperature", style = MaterialTheme.typography.labelMedium, color = Color(0xFF86A7CF))
+                                                Text(summary.maxTemperature, style = MaterialTheme.typography.titleMedium, color = Color.White)
                                                 Text(
                                                     text = summary.maxTemperatureDate,
                                                     style = MaterialTheme.typography.bodySmall,
-                                                    color = Color(0xFF6A7280)
+                                                    color = Color(0xFF86A7CF)
                                                 )
                                             }
                                             Column(modifier = Modifier.weight(1f)) {
-                                                Text("Min temperature", style = MaterialTheme.typography.labelMedium)
-                                                Text(summary.minTemperature, style = MaterialTheme.typography.titleMedium)
+                                                Text("Min temperature", style = MaterialTheme.typography.labelMedium, color = Color(0xFF86A7CF))
+                                                Text(summary.minTemperature, style = MaterialTheme.typography.titleMedium, color = Color.White)
                                                 Text(
                                                     text = summary.minTemperatureDate,
                                                     style = MaterialTheme.typography.bodySmall,
-                                                    color = Color(0xFF6A7280)
+                                                    color = Color(0xFF86A7CF)
                                                 )
                                             }
                                         }
 
                                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                             Column(modifier = Modifier.weight(1f)) {
-                                                Text("Average humidity", style = MaterialTheme.typography.labelMedium)
-                                                Text(summary.averageHumidity, style = MaterialTheme.typography.titleMedium)
+                                                Text("Average humidity", style = MaterialTheme.typography.labelMedium, color = Color(0xFF86A7CF))
+                                                Text(summary.averageHumidity, style = MaterialTheme.typography.titleMedium, color = Color.White)
                                             }
                                             Column(modifier = Modifier.weight(1f)) {
-                                                Text("Average pressure", style = MaterialTheme.typography.labelMedium)
-                                                Text(summary.averagePressure, style = MaterialTheme.typography.titleMedium)
+                                                Text("Average pressure", style = MaterialTheme.typography.labelMedium, color = Color(0xFF86A7CF))
+                                                Text(summary.averagePressure, style = MaterialTheme.typography.titleMedium, color = Color.White)
                                             }
                                         }
                                     }
@@ -373,7 +399,11 @@ fun WeatherHistoryScreen(
                         Button(
                             onClick = onOpenSelectedDay,
                             modifier = Modifier.fillMaxWidth(),
-                            enabled = isMonthSelectionConfirmed && state.selectedHistoryMonth != null
+                            enabled = isMonthSelectionConfirmed && state.selectedHistoryMonth != null,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFF34495E),
+                                contentColor = Color.White
+                            )
                         ) {
                             Text("Open selected month")
                         }

@@ -68,7 +68,7 @@ fun WeatherHistoryDayScreen(
         ?.replaceFirstChar { it.uppercase() }
 
     Scaffold(
-        containerColor = Color(0xFFF3F7FB),
+        containerColor = Color(0xFF10243A),
         topBar = {
             TopAppBar(
                 title = { Text("Weather History Details") },
@@ -89,9 +89,9 @@ fun WeatherHistoryDayScreen(
                 .background(
                     Brush.verticalGradient(
                         listOf(
-                            Color(0xFFF3F7FB),
-                            Color(0xFFE8EFF7),
-                            Color(0xFFFDFDFE)
+                            Color(0xFF0B1E33),
+                            Color(0xFF102B45),
+                            Color(0xFF0B1E33)
                         )
                     )
                 )
@@ -106,7 +106,7 @@ fun WeatherHistoryDayScreen(
             ) {
                 item {
                     Card(
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFF214A6A)),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFF26384C).copy(alpha = 0.95f)),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(
@@ -129,7 +129,9 @@ fun WeatherHistoryDayScreen(
 
                 item {
                     Card(
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        colors = CardDefaults.cardColors(
+                            containerColor = Color(0xFF26384C).copy(alpha = 0.92f)
+                        ),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(
@@ -138,19 +140,21 @@ fun WeatherHistoryDayScreen(
                         ) {
                             Text(
                                 text = "Select day",
-                                style = MaterialTheme.typography.titleMedium
+                                style = MaterialTheme.typography.titleMedium,
+                                color = Color.White.copy(alpha = 0.8f)
                             )
 
                             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                                 Text(
                                     text = "Selecteaza o zi!",
                                     style = MaterialTheme.typography.headlineSmall,
-                                    color = Color(0xFF214A6A)
+                                    color = Color.White
                                 )
 
                                 Text(
                                     text = monthTitle ?: "Calendar",
-                                    style = MaterialTheme.typography.titleLarge
+                                    style = MaterialTheme.typography.titleLarge,
+                                    color = Color.White
                                 )
 
                                 Row(modifier = Modifier.fillMaxWidth()) {
@@ -158,7 +162,7 @@ fun WeatherHistoryDayScreen(
                                         Text(
                                             text = label,
                                             style = MaterialTheme.typography.labelMedium,
-                                            color = Color(0xFF6A7280),
+                                            color = Color.White,
                                             modifier = Modifier
                                                 .weight(1f)
                                                 .padding(horizontal = 4.dp)
@@ -190,14 +194,14 @@ fun WeatherHistoryDayScreen(
                                                         },
                                                         enabled = isAvailable,
                                                         color = when {
-                                                            isSelected -> Color(0xFF214A6A)
-                                                            isAvailable -> Color(0xFFF8FAFD)
-                                                            else -> Color(0xFFF1F4F8)
+                                                            isSelected -> Color(0xFF5D8CC1)
+                                                            isAvailable -> Color(0xFF34495E).copy(alpha = 0.85f)
+                                                            else -> Color(0xFF223247).copy(alpha = 0.45f)
                                                         },
                                                         contentColor = when {
                                                             isSelected -> Color.White
-                                                            isAvailable -> Color(0xFF1E344A)
-                                                            else -> Color(0xFF9AA3AF)
+                                                            isAvailable -> Color.White.copy(alpha = 0.9f)
+                                                            else -> Color.White.copy(alpha = 0.35f)
                                                         },
                                                         tonalElevation = 0.dp,
                                                         shadowElevation = 0.dp,

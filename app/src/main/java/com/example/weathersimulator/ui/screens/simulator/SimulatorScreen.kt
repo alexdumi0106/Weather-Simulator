@@ -122,10 +122,10 @@ private fun computeWeatherDescription(
         humidity > 90 && wind >= 50 && pressure < 1000 && cloudCoverage > 60->
             R.drawable.icon_weather_15 to "Furtună"
 
-        humidity > 70 && wind >= 40 && pressure in 995f..1005f && temperature > 20 && cloudCoverage in 20f..60f ->
+        humidity > 70 && wind >= 40 && pressure < 1000 && temperature > 20 && cloudCoverage in 60f..80f ->
             R.drawable.icon_weather_16 to "Furtună cu soare"
 
-        humidity > 85 && pressure < 1005 && cloudCoverage >= 80 ->
+        humidity > 85 && pressure < 1005 && cloudCoverage > 80 ->
             R.drawable.icon_weather_18 to "Ploaie"
 
         cc == 0f   -> R.drawable.icon_weather_01 to "Însorit"
@@ -642,7 +642,7 @@ fun AnimatedSky(
 ) {
     val infinite = rememberInfiniteTransition(label = "sky")
     val windFactor = (windSpeed / 120f).coerceIn(0f, 1f)
-    val cloudDriftDuration = (26000f - windFactor * 17000f).roundToInt().coerceIn(7000, 26000)
+    val cloudDriftDuration = (36000f - windFactor * 18000f).roundToInt().coerceIn(12000, 36000)
 
     // Soarele pulsează (lumina)
     val sunPulse by infinite.animateFloat(
@@ -710,8 +710,8 @@ fun AnimatedSky(
 
     val conditionCloudBoost = when (weatherDescription) {
         "Însorit" -> -0.18f
-        "Predominant însorit" -> -0.10f
-        "Parțial însorit" -> -0.04f
+        "Predominant însorit" -> 0.10f
+        "Parțial însorit" -> 0.12f
         "Nori și soare" -> 0.06f
         "Predominant noros" -> 0.16f
         "Noros" -> 0.24f
@@ -731,14 +731,14 @@ fun AnimatedSky(
 
     val sunConditionFactor = when (weatherDescription) {
         "Însorit" -> 1.0f
-        "Predominant însorit" -> 0.92f
-        "Parțial însorit" -> 0.78f
-        "Nori și soare" -> 0.62f
-        "Predominant noros" -> 0.32f
-        "Noros" -> 0.18f
+        "Predominant însorit" -> 1.0f
+        "Parțial însorit" -> 1.0f
+        "Nori și soare" -> 1.0f
+        "Predominant noros" -> 1.0f
+        "Furtună cu soare" -> 0.94f
+        "Noros" -> 0.0f
         "Ploaie", "Ploaie ușoară", "Ploaie intensa" -> 0.10f
         "Furtună" -> 0.04f
-        "Furtună cu soare" -> 0.18f
         "Ninsoare", "Ninsoare usoara", "Ninsoare intensa" -> 0.22f
         "Ceață" -> 0.12f
         else -> 0.7f
@@ -752,47 +752,62 @@ fun AnimatedSky(
         else -> 0f
     }
 
-    val cloudsAlpha = (cloudAlphaBase + conditionCloudBoost + stormBoost).coerceIn(0f, 1f)
-    val sunAlpha = ((1f - cloudAlphaBase * 0.9f) * sunConditionFactor).coerceIn(0f, 1f)
+    val cloudsAlpha = when (weatherDescription) {
+        "Însorit" -> 0f
+        else -> (cloudAlphaBase + conditionCloudBoost + stormBoost).coerceIn(0f, 1f)
+    }
+    val keepStrongSun = weatherDescription in setOf(
+        "Însorit",
+        "Predominant însorit",
+        "Parțial însorit",
+        "Nori și soare",
+        "Predominant noros",
+        "Furtună cu soare"
+    )
+    val sunAlpha = if (keepStrongSun) {
+        sunConditionFactor.coerceIn(0f, 1f)
+    } else {
+        ((1f - cloudAlphaBase * 0.9f) * sunConditionFactor).coerceIn(0f, 1f)
+    }
     val hazeAlpha = (
         ((humidity - 60f) / 40f).coerceIn(0f, 1f) * (1f - cloudsAlpha * 0.35f) + hazeBoost
     ).coerceIn(0f, 1f)
     
     val skyColors = when (weatherDescription) {
         "Însorit" -> listOf(
-            Color(0xFF2D77D3),
-            Color(0xFF5FA9F0),
-            Color(0xFFCFE8FF)
+            Color(0xFF1C5EBA),
+            Color(0xFF3E89DE),
+            Color(0xFFB8DAF8)
         )
 
         "Predominant însorit" -> listOf(
-            Color(0xFF367DCE),
-            Color(0xFF75B2EC),
-            Color(0xFFD8EDFF)
+            Color(0xFF1C5EBA),
+            Color(0xFF3E89DE),
+            Color(0xFFB8DAF8)
         )
 
         "Parțial însorit" -> listOf(
-            Color(0xFF3A83D4),
-            Color(0xFF82BDEB),
-            Color(0xFFDDEDF8)
+            Color(0xFF1C5EBA),
+            Color(0xFF3E89DE),
+            Color(0xFFB8DAF8)
         )
 
         "Nori și soare" -> listOf(
-            Color(0xFF5578B0),
-            Color(0xFF8FA8C3),
-            Color(0xFFD7E0E8)
+            Color(0xFF478FD8),
+            Color(0xFF8AC0ED),
+            Color(0xFFE2F1FF)
         )
 
         "Predominant noros" -> listOf(
-            Color(0xFF5F748A),
-            Color(0xFF95A5B3),
-            Color(0xFFD6DEE4)
+            Color(0xFF4E88C2),
+            Color(0xFF8DB2D2),
+            Color(0xFFDDEAF4)
         )
 
         "Noros" -> listOf(
-            Color(0xFF4E6276),
-            Color(0xFF8598A8),
-            Color(0xFFC8D2DA)
+            Color(0xFF5D6773),
+            Color(0xFF8F9AA7),
+            Color(0xFFC7D0D8)
         )
 
         "Ploaie", "Ploaie ușoară", "Ploaie intensa" -> listOf(
@@ -942,20 +957,30 @@ fun AnimatedSky(
                 y = h * (0.18f + (0.015f * sunDrift))
             )
             val r = size.minDimension * 0.10f * sunPulse
+            val isStormWithSun = weatherDescription == "Furtună cu soare"
 
             drawSunWithRays(
                 center = center,
                 radius = r,
-                sunAlpha = sunAlpha,
+                sunAlpha = if (isStormWithSun) (sunAlpha * 1.08f).coerceIn(0f, 1f) else sunAlpha,
                 rayRotation = sunRayRotation
             )
         }
 
         // Cloud layout is tuned per weather type to match visual references.
         if (cloudsAlpha > 0.02f) {
-            fun xPos(speed: Float): Float {
-                val speedBoost = speed + (windFactor * 0.75f)
-                return (-0.35f * w) + (cloudMove * (1.85f * w) * speedBoost)
+            fun wrap01(value: Float): Float {
+                val wrapped = value % 1f
+                return if (wrapped < 0f) wrapped + 1f else wrapped
+            }
+
+            fun xPos(speed: Float, phaseOffset: Float, xOffsetRatio: Float, driftFactor: Float): Float {
+                val speedBoost = (((speed * 0.72f) + (windFactor * 0.48f) + 0.28f) * driftFactor).coerceIn(0.55f, 1.55f)
+                val localMove = wrap01(cloudMove + phaseOffset)
+                val startX = -0.62f * w
+                val travelWidth = 2.24f * w
+                val xSpread = 0.35f
+                return startX + (localMove * travelWidth * speedBoost) + (w * xOffsetRatio * xSpread)
             }
 
             val cloudProfile = cloudProfileFor(
@@ -968,7 +993,12 @@ fun AnimatedSky(
             cloudProfile.bands.forEach { band ->
                 val wobble = if (band.invertBob) -cloudBob else cloudBob
                 drawCloudStrip(
-                    baseX = xPos(band.speed),
+                    baseX = xPos(
+                        speed = band.speed,
+                        phaseOffset = band.phaseOffset,
+                        xOffsetRatio = band.xOffsetRatio,
+                        driftFactor = band.driftFactor
+                    ),
                     baseY = h * (band.yRatio + wobble * band.bobFactor),
                     scale = band.scale,
                     color = cloudProfile.baseColor.copy(alpha = (cloudProfile.baseColor.alpha * band.alphaMul).coerceIn(0f, 1f)),
@@ -1061,13 +1091,49 @@ private data class CloudBandSpec(
     val darkness: Float,
     val puffiness: Float,
     val bobFactor: Float,
-    val invertBob: Boolean
+    val invertBob: Boolean,
+    val xOffsetRatio: Float = 0f,
+    val driftFactor: Float = 1f,
+    val phaseOffset: Float = 0f
 )
 
 private data class CloudProfile(
     val baseColor: Color,
     val bands: List<CloudBandSpec>
 )
+
+private fun denseOvercastBands(count: Int): List<CloudBandSpec> {
+    return List(count) { i ->
+        val t = if (count <= 1) 0f else i / (count - 1f)
+        val speed = 0.44f + t * 0.98f
+        val yRatio = 0.12f + t * 0.54f
+        val scale = (1.56f + (kotlin.math.sin(i * 0.9f) * 0.24f).toFloat() + (1f - t) * 0.10f).coerceIn(1.40f, 1.98f)
+        val alphaMul = (1.00f - t * 0.28f).coerceIn(0.70f, 1.00f)
+        val flatness = (0.58f + t * 0.18f).coerceIn(0.58f, 0.78f)
+        val darkness = 1.14f + t * 0.20f
+        val puffiness = (0.42f - t * 0.18f).coerceIn(0.22f, 0.42f)
+        val bobFactor = (0.010f - t * 0.003f).coerceIn(0.006f, 0.010f)
+        val invertBob = i % 2 == 1
+        val xOffsetRatio = -0.28f + t * 0.58f
+        val driftFactor = 0.86f + t * 0.36f
+        val phaseOffset = (0.03f + i * 0.11f) % 1f
+
+        CloudBandSpec(
+            speed = speed,
+            yRatio = yRatio,
+            scale = scale,
+            alphaMul = alphaMul,
+            flatness = flatness,
+            darkness = darkness,
+            puffiness = puffiness,
+            bobFactor = bobFactor,
+            invertBob = invertBob,
+            xOffsetRatio = xOffsetRatio,
+            driftFactor = driftFactor,
+            phaseOffset = phaseOffset
+        )
+    }
+}
 
 private fun cloudProfileFor(
     weatherDescription: String,
@@ -1083,111 +1149,108 @@ private fun cloudProfileFor(
 
     return when (weatherDescription) {
         "Însorit" -> CloudProfile(
-            baseColor = Color(0xFFF6FBFF).copy(alpha = alpha * 0.30f),
-            bands = listOf(
-                CloudBandSpec(0.58f, 0.18f, 0.78f, 0.90f, 0.12f, 0.82f, 0.22f, 0.006f, false),
-                CloudBandSpec(1.10f, 0.28f, 0.66f, 0.75f, 0.10f, 0.80f, 0.18f, 0.004f, true)
-            )
+            baseColor = Color(0xFFF6FBFF).copy(alpha = 0f),
+            bands = emptyList()
         )
 
         "Predominant însorit" -> CloudProfile(
-            baseColor = Color(0xFFF3F8FE).copy(alpha = alpha * 0.46f),
-            bands = listOf(
-                CloudBandSpec(0.56f, 0.18f, 0.92f, 1.00f, 0.16f, 0.86f, 0.34f, 0.008f, false),
-                CloudBandSpec(0.92f, 0.29f, 0.98f, 0.88f, 0.14f, 0.84f, 0.30f, 0.009f, true),
-                CloudBandSpec(1.32f, 0.42f, 0.82f, 0.72f, 0.18f, 0.88f, 0.26f, 0.006f, false)
-            )
+            baseColor = Color(0xFFDDE7F0).copy(alpha = alpha * 1.00f),
+            bands = denseOvercastBands(count = 5)
         )
 
         "Parțial însorit" -> CloudProfile(
-            baseColor = Color(0xFFF2F7FD).copy(alpha = alpha * 0.66f),
-            bands = listOf(
-                CloudBandSpec(0.54f, 0.16f, 1.18f, 1.00f, 0.24f, 0.92f, 0.58f, 0.010f, false),
-                CloudBandSpec(0.88f, 0.28f, 1.34f, 0.95f, 0.30f, 0.94f, 0.62f, 0.011f, true),
-                CloudBandSpec(1.14f, 0.41f, 1.24f, 0.84f, 0.34f, 0.98f, 0.56f, 0.009f, false),
-                CloudBandSpec(1.36f, 0.54f, 1.06f, 0.68f, 0.36f, 1.00f, 0.50f, 0.007f, true)
-            )
+            baseColor = Color(0xFFDDE7F0).copy(alpha = alpha * 0.96f),
+            bands = denseOvercastBands(count = 10)
         )
 
         "Nori și soare" -> CloudProfile(
-            baseColor = Color(0xFFE8EEF4).copy(alpha = alpha * 0.78f),
-            bands = listOf(
-                CloudBandSpec(0.52f, 0.17f, 1.36f, 1.00f, 0.42f, 1.06f, 0.62f, 0.011f, false),
-                CloudBandSpec(0.84f, 0.29f, 1.56f, 0.95f, 0.48f, 1.12f, 0.58f, 0.012f, true),
-                CloudBandSpec(1.10f, 0.42f, 1.52f, 0.86f, 0.52f, 1.14f, 0.52f, 0.009f, false),
-                CloudBandSpec(1.34f, 0.56f, 1.24f, 0.74f, 0.56f, 1.16f, 0.46f, 0.007f, true)
-            )
+            baseColor = Color(0xFFDDE7F0).copy(alpha = alpha * 0.86f),
+            bands = denseOvercastBands(count = 20)
         )
 
         "Predominant noros" -> CloudProfile(
-            baseColor = Color(0xFFDBE4EC).copy(alpha = alpha * 0.88f),
-            bands = listOf(
-                CloudBandSpec(0.50f, 0.16f, 1.72f, 1.00f, 0.62f, 1.18f, 0.40f, 0.010f, false),
-                CloudBandSpec(0.80f, 0.28f, 1.98f, 0.96f, 0.68f, 1.24f, 0.36f, 0.011f, true),
-                CloudBandSpec(1.06f, 0.40f, 2.06f, 0.90f, 0.72f, 1.28f, 0.34f, 0.009f, false),
-                CloudBandSpec(1.28f, 0.53f, 1.86f, 0.78f, 0.74f, 1.30f, 0.30f, 0.007f, true)
-            )
+            baseColor = Color(0xFFDDE7F0).copy(alpha = alpha * 0.86f),
+            bands = denseOvercastBands(count = 40)
         )
 
         "Noros" -> CloudProfile(
-            baseColor = Color(0xFFD2DCE6).copy(alpha = alpha * 0.95f),
-            bands = listOf(
-                CloudBandSpec(0.48f, 0.14f, 1.96f, 1.00f, 0.74f, 1.28f + pressureDarkBoost, 0.30f, 0.009f, false),
-                CloudBandSpec(0.76f, 0.25f, 2.22f, 0.98f, 0.80f, 1.36f + pressureDarkBoost, 0.28f, 0.010f, true),
-                CloudBandSpec(0.98f, 0.36f, 2.28f, 0.94f, 0.84f, 1.42f + pressureDarkBoost, 0.26f, 0.009f, false),
-                CloudBandSpec(1.20f, 0.48f, 2.06f, 0.86f, 0.86f, 1.44f + pressureDarkBoost, 0.24f, 0.008f, true),
-                CloudBandSpec(1.40f, 0.60f, 1.80f, 0.74f, 0.88f, 1.46f + pressureDarkBoost, 0.22f, 0.006f, false)
-            )
+            baseColor = Color(0xFFCDD6DE).copy(alpha = alpha * 0.94f),
+            bands = denseOvercastBands(count = 40).map { band ->
+                band.copy(darkness = band.darkness + pressureDarkBoost)
+            }
         )
 
         "Ploaie", "Ploaie ușoară", "Ploaie intensa" -> CloudProfile(
             baseColor = Color(0xFFC5D0D9).copy(alpha = alpha * 0.92f),
-            bands = listOf(
-                CloudBandSpec(0.52f, 0.13f, 2.05f, 1.00f, 0.82f, 1.40f + pressureDarkBoost, 0.26f, 0.008f, false),
-                CloudBandSpec(0.78f, 0.24f, 2.36f, 0.98f, 0.88f, 1.48f + pressureDarkBoost, 0.24f, 0.010f, true),
-                CloudBandSpec(1.00f, 0.35f, 2.40f, 0.94f, 0.90f, 1.52f + pressureDarkBoost, 0.22f, 0.009f, false),
-                CloudBandSpec(1.20f, 0.46f, 2.18f, 0.86f, 0.92f, 1.56f + pressureDarkBoost, 0.22f, 0.007f, true),
-                CloudBandSpec(1.38f, 0.58f, 1.92f, 0.76f, 0.94f, 1.60f + pressureDarkBoost, 0.20f, 0.006f, false)
-            )
+            bands = denseOvercastBands(count = 40).map { band ->
+                band.copy(
+                    yRatio = (band.yRatio - 0.02f).coerceIn(0.10f, 0.72f),
+                    scale = (band.scale + 0.26f).coerceIn(1.62f, 2.42f),
+                    flatness = (band.flatness + 0.14f).coerceIn(0.70f, 0.94f),
+                    darkness = band.darkness + 0.24f + pressureDarkBoost,
+                    puffiness = (band.puffiness - 0.10f).coerceIn(0.16f, 0.34f),
+                    bobFactor = (band.bobFactor * 0.80f).coerceIn(0.004f, 0.009f)
+                )
+            }
         )
 
         "Furtună" -> CloudProfile(
             baseColor = Color(0xFFB5C1CC).copy(alpha = alpha * 0.94f),
-            bands = listOf(
-                CloudBandSpec(0.56f, 0.12f, 2.25f, 1.00f, 0.90f, 1.70f, 0.22f, 0.006f, false),
-                CloudBandSpec(0.80f, 0.22f, 2.58f, 0.98f, 0.94f, 1.80f, 0.20f, 0.007f, true),
-                CloudBandSpec(1.00f, 0.33f, 2.66f, 0.96f, 0.95f, 1.88f, 0.18f, 0.007f, false),
-                CloudBandSpec(1.18f, 0.44f, 2.46f, 0.88f, 0.96f, 1.92f, 0.18f, 0.006f, true),
-                CloudBandSpec(1.36f, 0.56f, 2.10f, 0.78f, 0.96f, 1.96f, 0.16f, 0.005f, false)
-            )
+            bands = denseOvercastBands(count = 40).map { band ->
+                band.copy(
+                    yRatio = (band.yRatio - 0.03f).coerceIn(0.08f, 0.70f),
+                    scale = (band.scale + 0.34f).coerceIn(1.78f, 2.68f),
+                    flatness = (band.flatness + 0.20f).coerceIn(0.78f, 0.98f),
+                    darkness = band.darkness + 0.42f + pressureDarkBoost,
+                    puffiness = (band.puffiness - 0.14f).coerceIn(0.12f, 0.30f),
+                    driftFactor = (band.driftFactor + 0.06f).coerceIn(0.90f, 1.34f),
+                    bobFactor = (band.bobFactor * 0.66f).coerceIn(0.003f, 0.008f)
+                )
+            }
         )
 
         "Furtună cu soare" -> CloudProfile(
             baseColor = Color(0xFFC5CFD8).copy(alpha = alpha * if (isStormy) 0.88f else 0.78f),
-            bands = listOf(
-                CloudBandSpec(0.52f, 0.13f, 1.98f, 1.00f, 0.76f, 1.42f, 0.28f, 0.009f, false),
-                CloudBandSpec(0.86f, 0.25f, 2.18f, 0.94f, 0.82f, 1.50f, 0.24f, 0.010f, true),
-                CloudBandSpec(1.12f, 0.39f, 1.92f, 0.78f, 0.70f, 1.34f, 0.36f, 0.008f, false)
-            )
+            bands = denseOvercastBands(count = 30).map { band ->
+                band.copy(
+                    yRatio = (band.yRatio - 0.01f).coerceIn(0.10f, 0.72f),
+                    scale = (band.scale + 0.18f).coerceIn(1.56f, 2.24f),
+                    flatness = (band.flatness + 0.12f).coerceIn(0.68f, 0.90f),
+                    darkness = band.darkness + 0.24f + if (isStormy) 0.16f else 0.04f,
+                    puffiness = (band.puffiness - 0.08f).coerceIn(0.18f, 0.34f),
+                    driftFactor = (band.driftFactor + 0.04f).coerceIn(0.88f, 1.30f)
+                )
+            }
         )
 
         "Ninsoare", "Ninsoare usoara", "Ninsoare intensa" -> CloudProfile(
             baseColor = Color(0xFFE8EEF4).copy(alpha = alpha * 0.86f),
-            bands = listOf(
-                CloudBandSpec(0.46f, 0.16f, 1.66f, 1.00f, 0.66f, 1.08f, 0.34f, 0.010f, false),
-                CloudBandSpec(0.74f, 0.30f, 1.86f, 0.94f, 0.72f, 1.12f, 0.32f, 0.011f, true),
-                CloudBandSpec(1.00f, 0.44f, 1.78f, 0.84f, 0.76f, 1.14f, 0.28f, 0.009f, false),
-                CloudBandSpec(1.24f, 0.57f, 1.56f, 0.70f, 0.78f, 1.16f, 0.24f, 0.007f, true)
-            )
+            bands = denseOvercastBands(count = 40).map { band ->
+                band.copy(
+                    yRatio = (band.yRatio + 0.03f).coerceIn(0.14f, 0.76f),
+                    scale = (band.scale + 0.04f).coerceIn(1.46f, 2.12f),
+                    flatness = (band.flatness + 0.06f).coerceIn(0.62f, 0.84f),
+                    darkness = band.darkness - 0.10f,
+                    puffiness = (band.puffiness + 0.05f).coerceIn(0.24f, 0.44f),
+                    driftFactor = (band.driftFactor - 0.06f).coerceIn(0.76f, 1.14f),
+                    bobFactor = (band.bobFactor * 1.08f).coerceIn(0.006f, 0.011f)
+                )
+            }
         )
 
         "Ceață" -> CloudProfile(
             baseColor = Color(0xFFEFF3F7).copy(alpha = alpha * 0.72f),
-            bands = listOf(
-                CloudBandSpec(0.40f, 0.20f, 1.98f, 0.92f, 0.96f, 0.92f, 0.16f, 0.006f, false),
-                CloudBandSpec(0.66f, 0.34f, 2.18f, 0.86f, 0.98f, 0.94f, 0.14f, 0.007f, true),
-                CloudBandSpec(0.92f, 0.50f, 2.10f, 0.74f, 0.99f, 0.96f, 0.12f, 0.006f, false)
-            )
+            bands = denseOvercastBands(count = 40).map { band ->
+                band.copy(
+                    yRatio = (band.yRatio + 0.08f).coerceIn(0.20f, 0.82f),
+                    scale = (band.scale + 0.20f).coerceIn(1.66f, 2.30f),
+                    flatness = (band.flatness + 0.24f).coerceIn(0.82f, 1.00f),
+                    darkness = band.darkness - 0.28f,
+                    puffiness = (band.puffiness - 0.14f).coerceIn(0.10f, 0.24f),
+                    driftFactor = (band.driftFactor - 0.18f).coerceIn(0.62f, 1.00f),
+                    bobFactor = (band.bobFactor * 0.58f).coerceIn(0.003f, 0.007f)
+                )
+            }
         )
 
         else -> CloudProfile(
@@ -1286,76 +1349,100 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawCloudStrip(
     darkness: Float = 1f,
     puffiness: Float = 0.5f
 ) {
-    val r = size.minDimension * 0.06f * scale
+    val r = size.minDimension * 0.072f * scale
     val x = baseX
     val y = baseY + (r * 0.08f * wobble)
     val flat = flatness.coerceIn(0f, 1f)
     val puff = puffiness.coerceIn(0f, 1f)
 
-    val shadowColor = Color(0xFF4A5C6D).copy(alpha = (color.alpha * 0.14f * darkness).coerceIn(0f, 1f))
-    val midTone = color.copy(alpha = (color.alpha * (0.95f - flat * 0.10f)).coerceIn(0f, 1f))
+    val width = r * (4.6f + puff * 1.3f)
+    val height = r * (1.55f - flat * 0.28f + puff * 0.22f)
+    val top = y - height * (0.62f + puff * 0.08f)
+    val left = x
+
+    val shadowColor = Color(0xFF4A5C6D).copy(alpha = (color.alpha * 0.16f * darkness).coerceIn(0f, 1f))
+    val brightTop = Color.White.copy(alpha = (color.alpha * (0.22f - flat * 0.05f)).coerceIn(0f, 1f))
+    val midTone = color.copy(alpha = (color.alpha * (0.96f - flat * 0.05f)).coerceIn(0f, 1f))
     val lowerTone = Color(
-        red = (color.red * (0.90f - flat * 0.10f)).coerceIn(0f, 1f),
-        green = (color.green * (0.92f - flat * 0.12f)).coerceIn(0f, 1f),
-        blue = (color.blue * (0.96f - flat * 0.08f)).coerceIn(0f, 1f),
-        alpha = (color.alpha * (0.90f + flat * 0.04f)).coerceIn(0f, 1f)
+        red = (color.red * (0.90f - flat * 0.08f)).coerceIn(0f, 1f),
+        green = (color.green * (0.92f - flat * 0.10f)).coerceIn(0f, 1f),
+        blue = (color.blue * (0.96f - flat * 0.06f)).coerceIn(0f, 1f),
+        alpha = (color.alpha * 0.92f).coerceIn(0f, 1f)
     )
-    val highlightColor = Color.White.copy(alpha = (color.alpha * (0.25f - flat * 0.07f)).coerceIn(0f, 1f))
+
+    val cloudShape = Path().apply {
+        val baseY = top + height * 0.90f
+        moveTo(left + width * 0.03f, baseY)
+        cubicTo(
+            left - width * 0.02f,
+            top + height * 0.68f,
+            left + width * 0.12f,
+            top + height * 0.36f,
+            left + width * 0.28f,
+            top + height * 0.32f
+        )
+        cubicTo(
+            left + width * 0.38f,
+            top + height * 0.02f,
+            left + width * 0.54f,
+            top - height * 0.02f,
+            left + width * 0.66f,
+            top + height * 0.24f
+        )
+        cubicTo(
+            left + width * 0.78f,
+            top + height * 0.10f,
+            left + width * 0.94f,
+            top + height * 0.28f,
+            left + width * 0.97f,
+            top + height * 0.52f
+        )
+        cubicTo(
+            left + width * 1.02f,
+            top + height * 0.70f,
+            left + width * 0.98f,
+            top + height * 0.90f,
+            left + width * 0.88f,
+            top + height * 0.92f
+        )
+        lineTo(left + width * 0.10f, top + height * 0.92f)
+        cubicTo(
+            left + width * 0.03f,
+            top + height * 0.92f,
+            left,
+            top + height * 0.92f,
+            left + width * 0.03f,
+            baseY
+        )
+        close()
+    }
 
     drawRoundRect(
         color = shadowColor,
-        topLeft = Offset(x + r * 0.6f, y + r * (0.82f + flat * 0.14f)),
-        size = Size(width = r * 4.8f, height = r * (0.90f + flat * 0.22f)),
-        cornerRadius = androidx.compose.ui.geometry.CornerRadius(r, r)
+        topLeft = Offset(left + width * 0.06f, top + height * 0.80f),
+        size = Size(width = width * 0.90f, height = height * 0.34f),
+        cornerRadius = androidx.compose.ui.geometry.CornerRadius(height * 0.28f, height * 0.28f)
     )
 
-    val puffBoost = puff * 0.26f
-    drawCircle(
-        color = midTone,
-        radius = r * (0.96f - flat * 0.18f + puffBoost),
-        center = Offset(x + r * 1.0f, y + r * (0.20f + flat * 0.10f - puff * 0.08f))
+    drawPath(
+        path = cloudShape,
+        color = Color.White.copy(alpha = (color.alpha * 0.16f).coerceIn(0f, 1f))
     )
-    drawCircle(
-        color = midTone,
-        radius = r * (1.25f - flat * 0.28f + puffBoost),
-        center = Offset(x + r * 2.1f, y - r * (0.36f - flat * 0.18f + puff * 0.10f))
-    )
-    drawCircle(
-        color = midTone,
-        radius = r * (1.10f - flat * 0.24f + puffBoost),
-        center = Offset(x + r * 3.25f, y - r * (0.06f - flat * 0.10f + puff * 0.06f))
-    )
-    drawCircle(
-        color = midTone,
-        radius = r * (0.92f - flat * 0.20f + puffBoost),
-        center = Offset(x + r * 4.35f, y + r * (0.15f + flat * 0.08f - puff * 0.05f))
+
+    drawPath(
+        path = cloudShape,
+        brush = Brush.verticalGradient(
+            colors = listOf(brightTop, midTone, lowerTone),
+            startY = top,
+            endY = top + height
+        )
     )
 
     drawRoundRect(
-        color = lowerTone,
-        topLeft = Offset(x + r * 0.6f, y + r * (0.05f + flat * 0.12f)),
-        size = Size(width = r * 4.7f, height = r * (1.45f - flat * 0.34f)),
-        cornerRadius = androidx.compose.ui.geometry.CornerRadius(r * 1.15f, r * 1.15f)
+        color = Color.White.copy(alpha = (color.alpha * 0.08f).coerceIn(0f, 1f)),
+        topLeft = Offset(left + width * 0.18f, top + height * 0.35f),
+        size = Size(width = width * 0.46f, height = height * 0.20f),
+        cornerRadius = androidx.compose.ui.geometry.CornerRadius(height * 0.14f, height * 0.14f)
     )
-
-    drawCircle(
-        color = highlightColor,
-        radius = r * (0.40f - flat * 0.08f),
-        center = Offset(x + r * 1.55f, y - r * (0.20f - flat * 0.10f))
-    )
-
-    drawCircle(
-        color = Color.White.copy(alpha = (color.alpha * (0.13f - flat * 0.05f)).coerceIn(0f, 1f)),
-        radius = r * (0.32f - flat * 0.12f),
-        center = Offset(x + r * 2.55f, y - r * (0.30f - flat * 0.14f))
-    )
-
-    if (puff > 0.45f) {
-        drawCircle(
-            color = Color.White.copy(alpha = (color.alpha * 0.10f * puff).coerceIn(0f, 1f)),
-            radius = r * (0.40f + puff * 0.16f),
-            center = Offset(x + r * 3.65f, y - r * (0.20f + puff * 0.10f))
-        )
-    }
 }
 
