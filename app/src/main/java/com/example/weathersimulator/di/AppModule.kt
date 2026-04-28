@@ -15,6 +15,8 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
+import com.example.weathersimulator.data.local.ai.AiMessageDao
+
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -33,7 +35,9 @@ object AppModule {
             context,
             WeatherDatabase::class.java,
             "weather_db"
-        ).build()
+        )
+        .fallbackToDestructiveMigration()
+        .build()
     }
 
     @Provides
@@ -61,4 +65,9 @@ object AppModule {
     fun provideRegisterUserUseCase(
         repo: UserRepository
     ): RegisterUserUseCase = RegisterUserUseCase(repo)
+
+    @Provides
+    fun provideAiMessageDao(db: WeatherDatabase): AiMessageDao {
+        return db.aiMessageDao()
+    }
 }
