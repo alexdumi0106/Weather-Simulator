@@ -540,7 +540,7 @@ class WeatherViewModel @Inject constructor(
             HourlyForecastItemUi(
                 time = formatHour(times[index]),
                 temperature = "${temperatures[index].roundToInt()}°",
-                weatherCode = weatherCodes[index],
+                weatherCode = calculateStormWeatherCode(index, hourly, weatherCodes[index]),
                 isDay = isDayList[index] == 1,
                 cloudCover = cloudCoverList[index]
             )
@@ -601,7 +601,11 @@ class WeatherViewModel @Inject constructor(
         for (index in 0 until size) {
             val dateKey = hourly.time[index].take(10)
             val bucket = grouped.getOrPut(dateKey) { MutableDayNightStats() }
-            val weatherCode = hourly.weatherCode[index]
+            var weatherCode = hourly.weatherCode[index]
+            
+            // Apply storm detection logic to override weather code if storm is detected
+            weatherCode = calculateStormWeatherCode(index, hourly, weatherCode)
+            
             val cloudCover = hourly.cloudCover[index]
             val temperature = hourly.temperature[index]
 
@@ -734,11 +738,128 @@ class WeatherViewModel @Inject constructor(
 
     private fun List<Int>.withRainPriorityOr(default: Int): Int {
         if (isEmpty()) return default
+        
+        val snowCodes = setOf(71, 73, 75, 77, 85, 86)
         val rainCodes = setOf(51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82, 95, 96, 99)
+        
+        val snowyCodes = filter { it in snowCodes }
         val rainyCodes = filter { it in rainCodes }
+        
+        // If both snow and rain are present, check their frequency
+        if (snowyCodes.isNotEmpty() && rainyCodes.isNotEmpty()) {
+            val snowCount = snowyCodes.size
+            val rainCount = rainyCodes.size
+            
+            // If frequencies are similar (difference less than 50% of the larger group), 
+            // or both have significant occurrences (at least 2 hours each), use combined icon code 999
+            val maxCount = maxOf(snowCount, rainCount)
+            val minCount = minOf(snowCount, rainCount)
+            val differencePercentage = if (maxCount > 0) (maxCount - minCount) * 100 / maxCount else 0
+            
+            if (differencePercentage <= 50 || (snowCount >= 2 && rainCount >= 2)) {
+                return 999  // Special code for snow + rain combined
+            }
+            
+            // If one is significantly more frequent, use that
+            return if (snowCount > rainCount) snowyCodes.mostFrequentIntOr(default) 
+                   else rainyCodes.mostFrequentIntOr(default)
+        }
+        
+        // Only snow present
+        if (snowyCodes.isNotEmpty()) {
+            return snowyCodes.mostFrequentIntOr(default)
+        }
+        
+        // Only rain present
         if (rainyCodes.isNotEmpty()) {
             return rainyCodes.mostFrequentIntOr(default)
         }
+        
         return mostFrequentIntOr(default)
+    }
+
+    private fun calculateStormWeatherCode(
+        currentIndex: Int,
+        hourly: com.example.weathersimulator.data.remote.weather.HourlyDto,
+        originalWeatherCode: Int
+    ): Int {
+        if (currentIndex < 0 || currentIndex >= hourly.time.size) return originalWeatherCode
+
+        val precipitation = hourly.precipitation.getOrNull(currentIndex) ?: 0.0
+        val rain = hourly.rain.getOrNull(currentIndex) ?: 0.0
+        val cloudCover = hourly.cloudCover.getOrNull(currentIndex) ?: 0
+        val humidity = hourly.humidity.getOrNull(currentIndex) ?: 0
+        val windGusts = hourly.windGusts.getOrNull(currentIndex) ?: 0.0
+        val temperature = hourly.temperature.getOrNull(currentIndex) ?: 0.0
+        val pressure = hourly.pressure.getOrNull(currentIndex) ?: 1013.0
+
+        // Presiune din ultimele 3 ore (3 indecși în urmă)
+        val pressure3HoursAgo = hourly.pressure.getOrNull(currentIndex - 3) ?: pressure
+        val pressureDrop3h = pressure - pressure3HoursAgo
+
+        // Semnale
+        val hasRainSignal = precipitation >= 1.0 || rain >= 1.0
+        val hasCloudSignal = cloudCover >= 70
+        val hasWindSignal = windGusts >= 35
+
+        // Storm score
+        var stormScore = 0
+
+        // Ploaie / precipitații
+        stormScore += when {
+            precipitation >= 5.0 || rain >= 5.0 -> 4
+            precipitation >= 2.0 || rain >= 2.0 -> 3
+            precipitation >= 1.0 || rain >= 1.0 -> 2
+            precipitation >= 0.3 || rain >= 0.3 -> 1
+            else -> 0
+        }
+
+        // Rafale
+        stormScore += when {
+            windGusts >= 55 -> 4
+            windGusts >= 45 -> 3
+            windGusts >= 35 -> 2
+            windGusts >= 25 -> 1
+            else -> 0
+        }
+
+        // Scădere presiune în ultimele 3 ore
+        stormScore += when {
+            pressureDrop3h <= -6 -> 4
+            pressureDrop3h <= -4 -> 3
+            pressureDrop3h <= -2.5 -> 2
+            pressureDrop3h <= -1.5 -> 1
+            else -> 0
+        }
+
+        // Umiditate
+        stormScore += when {
+            humidity >= 90 -> 2
+            humidity >= 80 -> 1
+            else -> 0
+        }
+
+        // Nori
+        stormScore += when {
+            cloudCover >= 90 -> 2
+            cloudCover >= 75 -> 1
+            else -> 0
+        }
+
+        // Temperatură
+        stormScore += when {
+            temperature >= 24 -> 1
+            else -> 0
+        }
+
+        // Decizia finală
+        val isStormLikely = hasRainSignal && hasCloudSignal && (hasWindSignal || pressureDrop3h <= -3.0 || stormScore >= 8)
+
+        return when {
+            stormScore >= 11 && isStormLikely -> 998  // Furtună puternică
+            stormScore >= 8 && isStormLikely -> 997   // Furtună normală
+            stormScore >= 6 && hasRainSignal && hasCloudSignal -> 996  // Averse / risc
+            else -> originalWeatherCode
+        }
     }
 }

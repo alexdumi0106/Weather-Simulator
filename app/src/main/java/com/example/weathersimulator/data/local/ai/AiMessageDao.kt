@@ -12,8 +12,11 @@ interface AiMessageDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(message: AiMessageEntity)
 
-    @Query("SELECT * FROM ai_messages ORDER BY timestamp ASC")
-    fun getAllMessages(): Flow<List<AiMessageEntity>>
+    @Query("SELECT * FROM ai_messages WHERE conversationId = :conversationId ORDER BY timestamp ASC")
+    fun getMessagesForConversation(conversationId: Long): Flow<List<AiMessageEntity>>
+
+    @Query("DELETE FROM ai_messages WHERE conversationId = :conversationId")
+    suspend fun clearConversation(conversationId: Long)
 
     @Query("DELETE FROM ai_messages")
     suspend fun clearAll()

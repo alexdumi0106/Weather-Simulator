@@ -6,15 +6,19 @@ import com.example.weathersimulator.data.local.user.UserDao
 import com.example.weathersimulator.data.local.user.UserEntity
 import com.example.weathersimulator.data.local.ai.AiMessageEntity
 import com.example.weathersimulator.data.local.ai.AiMessageDao
+import com.example.weathersimulator.data.local.ai.AiConversationDao
+import com.example.weathersimulator.data.local.ai.AiConversationEntity
 
 @Database(
     entities = [
         UserEntity::class,
-        AiMessageEntity::class
+        AiMessageEntity::class,
+        AiConversationEntity::class
     ],
-    version = 2
+    version = 3
 )
 abstract class WeatherDatabase : RoomDatabase() {
     abstract fun aiMessageDao(): AiMessageDao
+    abstract fun aiConversationDao(): AiConversationDao
     abstract fun userDao(): UserDao
 }

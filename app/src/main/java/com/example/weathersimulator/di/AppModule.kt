@@ -16,6 +16,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 import com.example.weathersimulator.data.local.ai.AiMessageDao
+import com.example.weathersimulator.data.local.ai.AiConversationDao
 
 
 @Module
@@ -69,5 +70,10 @@ object AppModule {
     @Provides
     fun provideAiMessageDao(db: WeatherDatabase): AiMessageDao {
         return db.aiMessageDao()
+    }
+
+    @Provides
+    fun provideAiConversationDao(db: WeatherDatabase): AiConversationDao {
+        return db.aiConversationDao()
     }
 }

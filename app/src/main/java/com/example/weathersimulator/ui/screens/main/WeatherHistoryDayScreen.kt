@@ -246,38 +246,33 @@ fun WeatherHistoryDayScreen(
                                 )
 
                                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    val dayVisual = WeatherIconRules.resolve(
+                                        weatherCode = summary.dayWeatherCode,
+                                        isDay = true,
+                                        cloudCover = summary.dayCloudCover
+                                    )
+                                    val nightVisual = WeatherIconRules.resolve(
+                                        weatherCode = summary.nightWeatherCode,
+                                        isDay = false,
+                                        cloudCover = summary.nightCloudCover
+                                    )
+
                                     WeatherSummaryTemperatureColumn(
                                         title = "Zi",
-                                        temperatureLabel = "Max temperature",
+                                        conditionLabel = dayVisual.label,
                                         temperature = summary.maxTemperature,
-                                        iconRes = WeatherIconRules.resolve(
-                                            weatherCode = summary.dayWeatherCode,
-                                            isDay = true,
-                                            cloudCover = summary.dayCloudCover
-                                        ).iconRes,
-                                        description = WeatherIconRules.resolve(
-                                            weatherCode = summary.dayWeatherCode,
-                                            isDay = true,
-                                            cloudCover = summary.dayCloudCover
-                                        ).label,
+                                        iconRes = dayVisual.iconRes,
+                                        description = dayVisual.label,
                                         modifier = Modifier.weight(1f),
                                         titleColor = Color.White.copy(alpha = 0.8f),
                                         textColor = Color.White
                                     )
                                     WeatherSummaryTemperatureColumn(
                                         title = "Noapte",
-                                        temperatureLabel = "Min temperature",
+                                        conditionLabel = nightVisual.label,
                                         temperature = summary.minTemperature,
-                                        iconRes = WeatherIconRules.resolve(
-                                            weatherCode = summary.nightWeatherCode,
-                                            isDay = false,
-                                            cloudCover = summary.nightCloudCover
-                                        ).iconRes,
-                                        description = WeatherIconRules.resolve(
-                                            weatherCode = summary.nightWeatherCode,
-                                            isDay = false,
-                                            cloudCover = summary.nightCloudCover
-                                        ).label,
+                                        iconRes = nightVisual.iconRes,
+                                        description = nightVisual.label,
                                         modifier = Modifier.weight(1f),
                                         titleColor = Color.White.copy(alpha = 0.8f),
                                         textColor = Color.White
@@ -380,7 +375,7 @@ fun WeatherHistoryDayScreen(
 @Composable
 private fun WeatherSummaryTemperatureColumn(
     title: String,
-    temperatureLabel: String,
+    conditionLabel: String,
     temperature: String,
     iconRes: Int,
     description: String,
@@ -406,7 +401,7 @@ private fun WeatherSummaryTemperatureColumn(
         )
 
         Text(
-            text = temperatureLabel,
+            text = conditionLabel,
             style = MaterialTheme.typography.labelMedium,
             color = titleColor
         )

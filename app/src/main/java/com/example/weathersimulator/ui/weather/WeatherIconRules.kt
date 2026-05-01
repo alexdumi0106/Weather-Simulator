@@ -13,12 +13,22 @@ object WeatherIconRules {
         val cloud = normalizeCloudCover(cloudCover, weatherCode)
         val hasSomeClearSky = cloud <= 70
 
+        // Storm detection codes (with priority over WMO standard codes)
         when (weatherCode) {
-            95, 96, 99 -> {
+            998 -> {
+                // Furtună puternică (score >= 11)
+                return WeatherVisual(
+                    iconRes = R.drawable.icon_weather_15,
+                    label = "Furtună puternică"
+                )
+            }
+
+            997 -> {
+                // Furtună normală (score >= 8)
                 return if (hasSomeClearSky) {
                     WeatherVisual(
                         iconRes = if (isDay) R.drawable.icon_weather_16 else R.drawable.icon_weather_42,
-                        label = if (isDay) "Furtună" else "Furtună"
+                        label = "Furtună cu soare"
                     )
                 } else {
                     WeatherVisual(
@@ -28,6 +38,24 @@ object WeatherIconRules {
                 }
             }
 
+            996 -> {
+                // Averse / risc de furtună (score >= 6)
+                return WeatherVisual(
+                    iconRes = R.drawable.icon_weather_14,
+                    label = "Averse / risc de furtună"
+                )
+            }
+        }
+
+        // Snow + Rain combined (not a storm, but a precipitation mix)
+        if (weatherCode == 999) {
+            return WeatherVisual(
+                iconRes = R.drawable.icon_weather_29,
+                label = "Ninsoare și ploaie"
+            )
+        }
+
+        when (weatherCode) {
             45, 48 -> {
                 return WeatherVisual(
                     iconRes = R.drawable.icon_weather_11,
@@ -65,7 +93,7 @@ object WeatherIconRules {
 
             61, 81 -> {
                 return WeatherVisual(
-                    iconRes = R.drawable.icon_weather_12,
+                    iconRes = R.drawable.icon_weather_18,
                     label = "Ploaie"
                 )
             }

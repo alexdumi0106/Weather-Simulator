@@ -6,10 +6,17 @@ data class ChatMessage(
     val isFromUser: Boolean
 )
 
+data class AiConversationUi(
+    val id: Long,
+    val title: String
+)
+
 data class AiUiState(
     val prompt: String = "",
     val serverUrl: String = "",
     val messages: List<ChatMessage> = emptyList(),
+    val conversations: List<AiConversationUi> = emptyList(),
+    val selectedConversationId: Long? = null,
     val isLoading: Boolean = false,
     val error: String? = null
 )

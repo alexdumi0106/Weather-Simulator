@@ -48,6 +48,8 @@ data class HourlyDto(
 
     val precipitation: List<Double> = emptyList(),
 
+    val rain: List<Double> = emptyList(),
+
     @SerializedName("weather_code")
     val weatherCode: List<Int> = emptyList(),
 
@@ -57,6 +59,9 @@ data class HourlyDto(
     @SerializedName("wind_speed_10m")
     val windSpeed: List<Double> = emptyList(),
 
+    @SerializedName("wind_gusts_10m")
+    val windGusts: List<Double> = emptyList(),
+
     @SerializedName("relative_humidity_2m")
     val humidity: List<Int> = emptyList(),
 
@@ -64,7 +69,7 @@ data class HourlyDto(
     val pressure: List<Double> = emptyList(),
 
     @SerializedName("is_day")
-    val isDay: List<Int>
+    val isDay: List<Int> = emptyList()
 )
 
 data class DailyDto(

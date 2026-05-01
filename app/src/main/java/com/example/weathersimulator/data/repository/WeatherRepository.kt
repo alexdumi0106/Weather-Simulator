@@ -56,9 +56,11 @@ class WeatherRepository @Inject constructor(
             time = hourlyRows.map { it.time },
             temperature = hourlyRows.map { it.temperatureC },
             precipitation = hourlyRows.map { it.precipitationMm },
+            rain = hourlyRows.map { it.rainMm },
             weatherCode = hourlyRows.map { it.weatherCode },
             cloudCover = hourlyRows.map { it.cloudCoverPercent },
             windSpeed = hourlyRows.map { it.windSpeed10mKmh },
+            windGusts = hourlyRows.map { it.windGusts10mKmh },
             humidity = hourlyRows.map { it.relativeHumidityPercent },
             pressure = hourlyRows.map { it.surfacePressureHpa },
             isDay = hourlyRows.map { if (it.isDayTime()) 1 else 0 }
