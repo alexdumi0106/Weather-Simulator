@@ -85,6 +85,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 
 
 
@@ -156,6 +158,7 @@ fun SimulatorScreen(
     var wind by remember { mutableStateOf(10f) }
     var cloudCoverage by remember { mutableStateOf(0f) }
 
+    var showAiHelpPopup by remember { mutableStateOf(true) }
     val context = LocalContext.current
     val audio = remember { AudioController(context) }
     val pressureSensorState by pressureViewModel.uiState.collectAsState()
@@ -322,13 +325,12 @@ fun SimulatorScreen(
                 .background(backgroundColor)
         ) {
             // 1) FUNDAL ANIMAT (spate)
-            WeatherScene(
+            AnimatedSky(
                 cloudCoverage = cloudCoverage,
                 isStormy = (descriptionNow == "Furtună" || descriptionNow == "Furtună cu soare"),
-                pressureTrend = pressureSensorState.trendLabel,
+                pressureTrend = PressureTrend.STABLE,
                 windSpeed = wind,
                 humidity = humidity,
-                temperature = temperature,
                 weatherDescription = descriptionNow
             )
             Column(
@@ -532,6 +534,59 @@ fun SimulatorScreen(
                     pressure = pressure,
                     wind = wind,
                     cloudCoverage = cloudCoverage
+                )
+            }
+
+            if (showAiHelpPopup) {
+                AlertDialog(
+                    onDismissRequest = {
+                        showAiHelpPopup = false
+                    },
+                    containerColor = Color(0xFF12345A),
+                    titleContentColor = Color.White,
+                    textContentColor = Color.White.copy(alpha = 0.92f),
+                    shape = RoundedCornerShape(28.dp),
+                    title = {
+                        Text(
+                            text = "Ai nevoie de ajutor?",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 21.sp
+                        )
+                    },
+                    text = {
+                        Text(
+                            text = "Folosește modulul AI al aplicației pentru a afla cum să modifici corect temperatura, umiditatea, presiunea, vântul și norii ca să simulezi ploaie, furtună, ninsoare sau ceață.",
+                            fontSize = 15.sp,
+                            lineHeight = 21.sp
+                        )
+                    },
+                    confirmButton = {
+                        Button(
+                            onClick = {
+                                showAiHelpPopup = false
+                                navController.navigate(Routes.AI_SIMULATION)
+                            },
+                            shape = RoundedCornerShape(18.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFF5FA8FF),
+                                contentColor = Color.White
+                            )
+                        ) {
+                            Text("Deschide AI")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(
+                            onClick = {
+                                showAiHelpPopup = false
+                            }
+                        ) {
+                            Text(
+                                text = "Mai târziu",
+                                color = Color.White.copy(alpha = 0.85f)
+                            )
+                        }
+                    }
                 )
             }
         }

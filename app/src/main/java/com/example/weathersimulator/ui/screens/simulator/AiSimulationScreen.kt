@@ -81,54 +81,38 @@ fun AiSimulationScreen(
                             color = Color.White
                         )
 
-                        Card(
-                            colors = CardDefaults.cardColors(containerColor = Color(0xFF1B3558)),
-                            shape = RoundedCornerShape(20.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(16.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Text(
-                                    text = "Server",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = Color(0xFFBEE7FF)
-                                )
-                                Text(
-                                    text = state.serverUrl,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = Color.White
-                                )
-                                currentError?.let { errorText ->
-                                    Text(
-                                        text = errorText,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = Color(0xFFFFB4B4)
-                                    )
-                                }
-                            }
-                        }
-
                         Button(
                             onClick = {
                                 vm.newChat()
                                 scope.launch { drawerState.close() }
                             },
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(18.dp)
+                            shape = RoundedCornerShape(18.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFF3D6FA6),
+                                contentColor = Color.White
+                            )
                         ) {
                             Text("+ New chat")
                         }
 
-                        if (state.selectedConversationId != null) {
-                            OutlinedButton(
-                                onClick = vm::clearCurrentChat,
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(18.dp)
-                            ) {
-                                Text("Clear chat")
-                            }
+                        OutlinedButton(
+                            onClick = vm::clearCurrentChat,
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(18.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = Color(0xFFBEE7FF)
+                            ),
+                            border = ButtonDefaults.outlinedButtonBorder.copy(
+                                brush = Brush.horizontalGradient(
+                                    listOf(
+                                        Color(0xFF3D6FA6),
+                                        Color(0xFF86C5FF)
+                                    )
+                                )
+                            )
+                        ) {
+                            Text("Clear chat")
                         }
 
                         LazyColumn(
