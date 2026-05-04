@@ -24,6 +24,26 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 
+internal fun isStormWeatherDescription(weatherDescription: String): Boolean {
+    return weatherDescription == "Furtună" || weatherDescription == "Furtună cu soare"
+}
+
+internal fun isRainWeatherDescription(weatherDescription: String): Boolean {
+    return weatherDescription == "Ploaie" ||
+        weatherDescription == "Ploaie ușoară" ||
+        weatherDescription == "Ploaie intensa"
+}
+
+internal fun isSnowWeatherDescription(weatherDescription: String): Boolean {
+    return weatherDescription == "Ninsoare" ||
+        weatherDescription == "Ninsoare usoara" ||
+        weatherDescription == "Ninsoare intensa"
+}
+
+internal fun isFogWeatherDescription(weatherDescription: String): Boolean {
+    return weatherDescription == "Ceață"
+}
+
 @Composable
 fun WeatherScene(
     cloudCoverage: Float,
@@ -31,7 +51,6 @@ fun WeatherScene(
     pressureTrend: PressureTrend,
     windSpeed: Float,
     humidity: Float,
-    temperature: Float,
     weatherDescription: String
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
@@ -45,18 +64,13 @@ fun WeatherScene(
         )
 
         RainLayer(
-            isStormy = isStormy,
-            humidity = humidity,
-            windSpeed = windSpeed,
-            temperature = temperature,
-            cloudCoverage = cloudCoverage
+            weatherDescription = weatherDescription,
+            windSpeed = windSpeed
         )
 
         SnowLayer(
-            temperature = temperature,
-            humidity = humidity,
-            windSpeed = windSpeed,
-            cloudCoverage = cloudCoverage
+            weatherDescription = weatherDescription,
+            windSpeed = windSpeed
         )
 
         LightningLayer(
@@ -146,13 +160,11 @@ fun LightningLayer(
 
 @Composable
 fun RainLayer(
-    isStormy: Boolean,
-    humidity: Float,
-    windSpeed: Float,
-    temperature: Float,
-    cloudCoverage: Float
+    weatherDescription: String,
+    windSpeed: Float
 ) {
-    val shouldRain = (isStormy || (humidity >= 85f && cloudCoverage > 80f)) && temperature > 0f
+    val isStormy = isStormWeatherDescription(weatherDescription)
+    val shouldRain = isStormy || isRainWeatherDescription(weatherDescription)
     if (!shouldRain) return
 
     val infinite = rememberInfiniteTransition(label = "rain")
@@ -219,12 +231,10 @@ fun RainLayer(
 
 @Composable
 fun SnowLayer(
-    temperature: Float,
-    humidity: Float,
-    windSpeed: Float,
-    cloudCoverage: Float
+    weatherDescription: String,
+    windSpeed: Float
 ) {
-    val shouldSnow = temperature <= 0f && humidity >= 70f && cloudCoverage >= 80f
+    val shouldSnow = isSnowWeatherDescription(weatherDescription)
     if (!shouldSnow) return
 
     val infinite = rememberInfiniteTransition(label = "snow")

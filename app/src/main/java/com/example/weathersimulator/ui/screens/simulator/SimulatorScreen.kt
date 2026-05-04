@@ -115,19 +115,19 @@ private fun computeWeatherDescription(
 ): Pair<Int, String> {
     val cc = (cloudCoverage / 20f).roundToInt() * 20f
     return when {
-        humidity > 95 && pressure < 1010 && temperature in 0f..15f ->
+        humidity > 95 && pressure < 1010 && wind < 10 ->
             R.drawable.icon_weather_11 to "Ceață"
 
-        temperature < 0 && humidity > 70 ->
+        temperature < 0 && humidity > 70 && cloudCoverage > 60 ->
             R.drawable.icon_weather_22 to "Ninsoare"
 
-        humidity > 90 && wind >= 50 && pressure < 1000 && cloudCoverage > 60->
-            R.drawable.icon_weather_15 to "Furtună"
-
-        humidity > 70 && wind >= 40 && pressure < 1000 && temperature > 20 && cloudCoverage in 60f..80f ->
+        humidity > 70 && wind >= 40 && pressure < 1000 && temperature > 0 && cloudCoverage in 60f..80f ->
             R.drawable.icon_weather_16 to "Furtună cu soare"
 
-        humidity > 85 && pressure < 1005 && cloudCoverage > 80 ->
+        humidity > 90 && wind >= 40 && pressure < 1000 && cloudCoverage > 80->
+            R.drawable.icon_weather_15 to "Furtună"
+
+        humidity > 85 && pressure < 1010 && cloudCoverage > 80 ->
             R.drawable.icon_weather_18 to "Ploaie"
 
         cc == 0f   -> R.drawable.icon_weather_01 to "Însorit"
@@ -192,12 +192,8 @@ fun SimulatorScreen(
             return@LaunchedEffect
         }
 
-        val isStorm = (descriptionNow == "Furtună" || descriptionNow == "Furtună cu soare")
-        val isRain = (
-                descriptionNow == "Ploaie" ||
-                        descriptionNow == "Averse" ||
-                        descriptionNow == "Ploaie cu soare"
-                )
+        val isStorm = isStormWeatherDescription(descriptionNow)
+        val isRain = isRainWeatherDescription(descriptionNow)
         if (isStorm || isRain) {
             audio.stopWind()
             return@LaunchedEffect
@@ -220,7 +216,7 @@ fun SimulatorScreen(
             return@LaunchedEffect
         }
 
-        if (descriptionNow == "Ploaie") {
+        if (isRainWeatherDescription(descriptionNow)) {
             audio.startRainLoop(resId = R.raw.rain, volume = 0.6f)
         } else {
             audio.stopRain()
@@ -230,7 +226,7 @@ fun SimulatorScreen(
     // Tunet, cand sunt conditii de furtuna
     //R = ID-ul intern Android pentru fișierul thunder.mp3 din res/raw
     LaunchedEffect(descriptionNow, soundsEnabled) {
-        val isStorm = (descriptionNow == "Furtună" || descriptionNow == "Furtună cu soare")
+        val isStorm = isStormWeatherDescription(descriptionNow)
 
         if (!soundsEnabled) {
             audio.stopThunder()
@@ -325,9 +321,9 @@ fun SimulatorScreen(
                 .background(backgroundColor)
         ) {
             // 1) FUNDAL ANIMAT (spate)
-            AnimatedSky(
+            WeatherScene(
                 cloudCoverage = cloudCoverage,
-                isStormy = (descriptionNow == "Furtună" || descriptionNow == "Furtună cu soare"),
+                isStormy = isStormWeatherDescription(descriptionNow),
                 pressureTrend = PressureTrend.STABLE,
                 windSpeed = wind,
                 humidity = humidity,
@@ -359,173 +355,220 @@ fun SimulatorScreen(
                 Spacer(modifier = Modifier.height(4.dp))
 
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(28.dp))
+                        .border(
+                            width = 1.dp,
+                            color = Color.White.copy(alpha = 0.35f),
+                            shape = RoundedCornerShape(28.dp)
+                        ),
                     shape = RoundedCornerShape(28.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = Color.White.copy(alpha = 0.16f)
+                        containerColor = Color.White.copy(alpha = 0.18f)
                     ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
+                    elevation = CardDefaults.cardElevation(defaultElevation = 14.dp)
                 ) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 18.dp, vertical = 20.dp),
-                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        Text(
-                            text = "Alege valorile atmosferice",
-                            fontSize = 20.sp,
-                            color = Color.White
-                        )
-
-                        val sliderColors = SliderDefaults.colors(
-                            thumbColor = Color(0xFFFFD180),
-                            activeTrackColor = Color(0xFFFFD180),
-                            inactiveTrackColor = Color.White.copy(alpha = 0.35f)
-                        )
-
-                        Text(
-                            text = "Temperatura: ${temperature.toInt()}°C",
-                            fontSize = 18.sp,
-                            color = Color.White
-                        )
-                        Slider(
-                            value = temperature,
-                            onValueChange = {
-                                temperature = it.roundToInt().toFloat()
-                            },
-                            valueRange = -20f..50f,
-                            steps = 69,
-                            colors = sliderColors
-                        )
-
-                        Text(
-                            text = "Umiditate: ${humidity.toInt()}%",
-                            fontSize = 18.sp,
-                            color = Color.White
-                        )
-                        Slider(
-                            value = humidity,
-                            onValueChange = { v ->
-                                humidity = (v / 10f).roundToInt() * 10f
-                            },
-                            valueRange = 0f..100f,
-                            steps = 9,
-                            colors = sliderColors
-                        )
-
-                        val isBarometerAvailable = pressureSensorState.isAvailable
-                        val trend = pressureSensorState.trendLabel
-                        val trendHpaPerHour = pressureSensorState.trendHpaPerHour
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = if (useBarometer && sensorPressure != null)
-                                    "Presiune (LIVE): ${sensorPressure.toInt()} hPa"
-                                else
-                                    "Presiune: ${pressure.toInt()} hPa",
-                                fontSize = 18.sp,
-                                color = Color.White
-                            )
-
-                            if (isBarometerAvailable) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .width(10.dp)
+                                            .height(10.dp)
+                                            .background(Color(0xFFFFD180), RoundedCornerShape(99.dp))
+                                    )
                                     Text(
-                                        text = "LIVE",
-                                        fontSize = 14.sp,
+                                        text = "Alege valorile atmosferice",
+                                        fontSize = 20.sp,
+                                        fontWeight = FontWeight.Bold,
                                         color = Color.White
                                     )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Switch(
-                                        checked = useBarometer,
-                                        onCheckedChange = { useBarometer = it }
+                                }
+
+                                Text(
+                                    text = "Ajustează valorile pentru a simula diferite condiții meteo.",
+                                    fontSize = 13.sp,
+                                    color = Color.White.copy(alpha = 0.84f)
+                                )
+                            }
+
+                            val sliderColors = SliderDefaults.colors(
+                                thumbColor = Color(0xFFFFD180),
+                                activeTrackColor = Color(0xFFFFD180),
+                                inactiveTrackColor = Color.White.copy(alpha = 0.28f)
+                            )
+
+                            WeatherSliderSection(
+                                label = "Temperatura",
+                                value = "${temperature.toInt()}°C"
+                            ) {
+                                Slider(
+                                    value = temperature,
+                                    onValueChange = {
+                                        temperature = it.roundToInt().toFloat()
+                                    },
+                                    valueRange = -20f..50f,
+                                    steps = 69,
+                                    colors = sliderColors
+                                )
+                            }
+
+                            WeatherSliderSection(
+                                label = "Umiditate",
+                                value = "${humidity.toInt()}%"
+                            ) {
+                                Slider(
+                                    value = humidity,
+                                    onValueChange = { v ->
+                                        humidity = (v / 10f).roundToInt() * 10f
+                                    },
+                                    valueRange = 0f..100f,
+                                    steps = 9,
+                                    colors = sliderColors
+                                )
+                            }
+
+                            val isBarometerAvailable = pressureSensorState.isAvailable
+                            val trend = pressureSensorState.trendLabel
+                            val trendHpaPerHour = pressureSensorState.trendHpaPerHour
+
+                            WeatherSliderSection(
+                                label = if (useBarometer && sensorPressure != null) "Presiune (LIVE)" else "Presiune",
+                                value = if (useBarometer && sensorPressure != null) "${sensorPressure.toInt()} hPa" else "${pressure.toInt()} hPa"
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = if (useBarometer && sensorPressure != null)
+                                            "Senzor activ"
+                                        else
+                                            "Mod manual",
+                                        fontSize = 13.sp,
+                                        color = Color.White.copy(alpha = 0.84f)
+                                    )
+
+                                    if (isBarometerAvailable) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text(
+                                                text = "LIVE",
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = Color.White.copy(alpha = 0.92f)
+                                            )
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Switch(
+                                                checked = useBarometer,
+                                                onCheckedChange = { useBarometer = it }
+                                            )
+                                        }
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(2.dp))
+
+                                Slider(
+                                    value = pressure,
+                                    onValueChange = { p ->
+                                        pressure = p.roundToInt().toFloat()
+                                    },
+                                    valueRange = 950f..1050f,
+                                    steps = 99,
+                                    enabled = !(useBarometer && sensorPressure != null),
+                                    colors = sliderColors
+                                )
+
+                                if (isBarometerAvailable && trend != PressureTrend.UNKNOWN && trendHpaPerHour != null) {
+                                    Text(
+                                        text = "Trend: ${"%.1f".format(trendHpaPerHour)} hPa/oră • $trend",
+                                        fontSize = 12.sp,
+                                        color = Color.White.copy(alpha = 0.84f)
+                                    )
+                                } else if (!isBarometerAvailable) {
+                                    Text(
+                                        text = "Barometru indisponibil. Folosește modul manual.",
+                                        fontSize = 12.sp,
+                                        color = Color.White.copy(alpha = 0.84f)
                                     )
                                 }
                             }
+
+                            WeatherSliderSection(
+                                label = "Viteza vântului",
+                                value = "${wind.toInt()} km/h"
+                            ) {
+                                Slider(
+                                    value = wind,
+                                    onValueChange = { w ->
+                                        wind = (w / 10f).roundToInt() * 10f
+                                    },
+                                    valueRange = 0f..120f,
+                                    steps = 11,
+                                    colors = sliderColors
+                                )
+                            }
+
+                            WeatherSliderSection(
+                                label = "Acoperire nori",
+                                value = "${cloudCoverage.toInt()}%"
+                            ) {
+                                Slider(
+                                    value = cloudCoverage,
+                                    onValueChange = { value ->
+                                        cloudCoverage = (value / 20f).roundToInt() * 20f
+                                    },
+                                    valueRange = 0f..100f,
+                                    steps = 4,
+                                    colors = sliderColors
+                                )
+                            }
                         }
-
-                        Slider(
-                            value = pressure,
-                            onValueChange = { p ->
-                                pressure = (p / 10f).roundToInt() * 10f
-                            },
-                            valueRange = 950f..1050f,
-                            steps = 9,
-                            enabled = !(useBarometer && sensorPressure != null),
-                            colors = sliderColors
-                        )
-
-                        if (isBarometerAvailable && trend != PressureTrend.UNKNOWN && trendHpaPerHour != null) {
-                            Text(
-                                text = "Trend: ${"%.1f".format(trendHpaPerHour)} hPa/oră • $trend",
-                                fontSize = 14.sp,
-                                color = Color.White.copy(alpha = 0.9f)
-                            )
-                        } else if (!isBarometerAvailable) {
-                            Text(
-                                text = "Barometru indisponibil. Folosește modul manual (slider).",
-                                fontSize = 14.sp,
-                                color = Color.White.copy(alpha = 0.9f)
-                            )
-                        }
-
-                        Text(
-                            text = "Viteza vântului: ${wind.toInt()} km/h",
-                            fontSize = 18.sp,
-                            color = Color.White
-                        )
-                        Slider(
-                            value = wind,
-                            onValueChange = { w ->
-                                wind = (w / 10f).roundToInt() * 10f
-                            },
-                            valueRange = 0f..120f,
-                            steps = 11,
-                            colors = sliderColors
-                        )
-
-                        Text(
-                            text = "Acoperire nori: ${cloudCoverage.toInt()}%",
-                            fontSize = 18.sp,
-                            color = Color.White
-                        )
-                        Slider(
-                            value = cloudCoverage,
-                            onValueChange = { value ->
-                                cloudCoverage = (value / 20f).roundToInt() * 20f
-                            },
-                            valueRange = 0f..100f,
-                            steps = 4,
-                            colors = sliderColors
-                        )
-                    }
                 }
 
                 Spacer(modifier = Modifier.height(32.dp))
 
-                Button(
-                    onClick = { navController.navigate(Routes.AI_SIMULATION) },
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(58.dp),
-                    shape = RoundedCornerShape(22.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.White.copy(alpha = 0.20f),
-                        contentColor = Color.White
-                    ),
-                    elevation = ButtonDefaults.buttonElevation(
-                        defaultElevation = 10.dp,
-                        pressedElevation = 14.dp
-                    )
+                        .clip(RoundedCornerShape(28.dp))
+                        .border(
+                            width = 1.dp,
+                            color = Color.White.copy(alpha = 0.35f),
+                            shape = RoundedCornerShape(28.dp)
+                        )
+                        .background(Color.White.copy(alpha = 0.18f))
                 ) {
-                    Text(
-                        text = "Simulare bazată pe AI",
-                        fontSize = 17.sp
-                    )
+                    Button(
+                        onClick = { navController.navigate(Routes.AI_SIMULATION) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(58.dp),
+                        shape = RoundedCornerShape(28.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.Transparent,
+                            contentColor = Color.White
+                        ),
+                        elevation = ButtonDefaults.buttonElevation(
+                            defaultElevation = 0.dp,
+                            pressedElevation = 0.dp
+                        )
+                    ) {
+                        Text(
+                            text = "Simulare bazată pe AI",
+                            fontSize = 17.sp
+                        )
+                    }
                 }
 
                 WeatherDisplayCard(
@@ -615,8 +658,9 @@ fun WeatherDisplayCard(
                 color = Color.White.copy(alpha = 0.35f),
                 shape = RoundedCornerShape(28.dp)
             ),
+        shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color.White.copy(alpha = 0.18f)
+            containerColor = Color.White.copy(alpha = 0.10f)
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 14.dp)
     ) {
@@ -683,6 +727,56 @@ fun WeatherSliderLabel(
             fontWeight = FontWeight.SemiBold,
             color = Color.White
         )
+    }
+}
+
+@Composable
+fun WeatherSliderSection(
+    label: String,
+    value: String,
+    content: @Composable () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(22.dp))
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = 0.13f),
+                        Color.White.copy(alpha = 0.06f)
+                    )
+                )
+            )
+            .border(
+                width = 1.dp,
+                color = Color.White.copy(alpha = 0.22f),
+                shape = RoundedCornerShape(22.dp)
+            )
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = label,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.White.copy(alpha = 0.96f)
+            )
+
+            Text(
+                text = value,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.White
+            )
+        }
+
+        content()
     }
 }
 
@@ -1100,6 +1194,10 @@ fun AnimatedSky(
         }
 
         if (fogAlpha > 0f) {
+            if (isFogWeatherDescription(weatherDescription)) {
+                drawRect(color = Color.White.copy(alpha = 0.10f))
+            }
+
             drawRect(
                 brush = Brush.verticalGradient(
                     colors = listOf(
@@ -1129,6 +1227,14 @@ fun AnimatedSky(
                 radius = w * 0.30f,
                 center = Offset(w * 0.52f, h * 0.88f)
             )
+
+            if (isFogWeatherDescription(weatherDescription)) {
+                drawCircle(
+                    color = Color.White.copy(alpha = fogAlpha * 0.10f),
+                    radius = w * 0.48f,
+                    center = Offset(w * 0.52f, h * 0.70f)
+                )
+            }
         }
 
         if (isStormy) {
