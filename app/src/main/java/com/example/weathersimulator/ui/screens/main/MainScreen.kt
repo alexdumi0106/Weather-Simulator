@@ -66,7 +66,11 @@ import androidx.compose.foundation.clickable
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.foundation.shape.RoundedCornerShape
-
+import androidx.compose.foundation.BorderStroke
+import com.example.weathersimulator.ui.screens.auth.AuthAccentColor
+import com.example.weathersimulator.ui.screens.auth.AuthFieldTextColor
+import com.example.weathersimulator.ui.screens.auth.AuthTitleColor
+import com.example.weathersimulator.ui.screens.auth.AuthLinkColor
 @Composable
 fun WeatherHomeSection(
     locationName: String,
@@ -378,21 +382,44 @@ fun MainScreen(navController: NavController) {
             if (showDialog) {
                 AlertDialog(
                     onDismissRequest = { showDialog = false },
-                    title = { Text("Logout") },
-                    text = { Text("Are you sure you want to log out?") },
+                    title = {
+                        Text(
+                            text = "Logout",
+                            color = AuthTitleColor,
+                            style = MaterialTheme.typography.titleLarge
+                        )
+                    },
+                    text = {
+                        Text(
+                            text = "Ești sigur că vrei să te deconectezi?",
+                            color = AuthFieldTextColor,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    },
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp),
+                    containerColor = Color(0xFF13263B).copy(alpha = 0.96f),
                     confirmButton = {
-                        TextButton(onClick = {
-                            FirebaseAuth.getInstance().signOut()
-                            navController.navigate(Routes.LOGIN) {
-                                popUpTo(Routes.MAIN) { inclusive = true }
-                            }
-                        }) {
-                            Text("Yes")
+                        Button(
+                            onClick = {
+                                FirebaseAuth.getInstance().signOut()
+                                navController.navigate(Routes.LOGIN) {
+                                    popUpTo(Routes.MAIN) { inclusive = true }
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = androidx.compose.ui.graphics.Color.Transparent,
+                                contentColor = AuthAccentColor
+                            ),
+                            border = BorderStroke(1.dp, AuthAccentColor),
+                            shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+                            modifier = Modifier.padding(end = 8.dp)
+                        ) {
+                            Text("Da")
                         }
                     },
                     dismissButton = {
                         TextButton(onClick = { showDialog = false }) {
-                            Text("Cancel")
+                            Text("Anulează", color = AuthLinkColor)
                         }
                     }
                 )
