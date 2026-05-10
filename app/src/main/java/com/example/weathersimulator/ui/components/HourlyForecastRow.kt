@@ -88,7 +88,7 @@ private fun HourlyForecastCard(item: HourlyForecastItemUi) {
                 .width(82.dp)
                 .height(86.dp)
                 .background(
-                    color = Color(0xFF223E5A),
+                    Color.White.copy(alpha = 0.10f),
                     shape = RoundedCornerShape(22.dp)
                 ),
             contentAlignment = Alignment.Center

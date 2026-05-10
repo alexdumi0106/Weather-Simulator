@@ -71,6 +71,13 @@ import com.example.weathersimulator.ui.screens.auth.AuthAccentColor
 import com.example.weathersimulator.ui.screens.auth.AuthFieldTextColor
 import com.example.weathersimulator.ui.screens.auth.AuthTitleColor
 import com.example.weathersimulator.ui.screens.auth.AuthLinkColor
+import androidx.compose.material.icons.rounded.Home
+import androidx.compose.material.icons.rounded.DateRange
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.CircularProgressIndicator
+
 @Composable
 fun WeatherHomeSection(
     locationName: String,
@@ -84,16 +91,7 @@ fun WeatherHomeSection(
 ) {
     val cityName = locationName.substringBefore(",").ifBlank { "Locatia ta" }
 
-    if (isLoading) {
-        LinearProgressIndicator(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(MaterialTheme.shapes.small),
-            color = Color(0xFFBEE7FF),
-            trackColor = Color.White.copy(alpha = 0.2f)
-        )
-        Spacer(Modifier.height(8.dp))
-    }
+    
 
     if (error != null) {
         Text(
@@ -105,7 +103,33 @@ fun WeatherHomeSection(
         return
     }
 
-    val current = data?.current ?: return
+    if (isLoading || data?.current == null) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(520.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                CircularProgressIndicator(
+                    color = Color.White,
+                    trackColor = Color.White.copy(alpha = 0.18f)
+                )
+
+                Text(
+                    text = "Se încarcă prognoza meteo...",
+                    color = Color.White.copy(alpha = 0.9f),
+                    style = MaterialTheme.typography.titleMedium
+                )
+            }
+        }
+        return
+    }
+
+    val current = data.current
     val today = dailyForecast.firstOrNull()
     val weatherVisual = WeatherIconRules.resolve(
         weatherCode = current.weatherCode ?: 0,
@@ -220,15 +244,29 @@ fun MainScreen(navController: NavController) {
         }
     }
 
-    var showDialog by remember { mutableStateOf(false) }
-    var showSettingsMenu by remember { mutableStateOf(false) }
     val baseBackground = weatherBackground(
         code = weatherState.data?.current?.weatherCode ?: 0,
         isDay = weatherState.data?.current?.isDay == 1
     )
 
-    Scaffold(
-        containerColor = Color.Transparent
+   Scaffold(
+        containerColor = Color.Transparent,
+        bottomBar = {
+            WeatherBottomNavBar(
+                onHomeClick = { },
+                onWeatherDataClick = {
+                    weatherVm.setHistoryMode(true)
+                    weatherVm.loadHistorical()
+                    navController.navigate(Routes.WEATHER_HISTORY_ROUTE)
+                },
+                onSimulatorClick = {
+                    navController.navigate(Routes.SIMULATOR)
+                },
+                onSettingsClick = {
+                    navController.navigate(Routes.SETTINGS)
+                }
+            )
+        }
     ) { padding ->
         Box(
             modifier = Modifier
@@ -267,166 +305,86 @@ fun MainScreen(navController: NavController) {
                     latitude = s.lat ?: 0.0,
                     longitude = s.lon ?: 0.0
                 )
-
-                Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(
-                                color = Color.White.copy(alpha = 0.14f),
-                                shape = RoundedCornerShape(20.dp)
-                            )
-                            .clickable {
-                                weatherVm.setHistoryMode(true)
-                                weatherVm.loadHistorical()
-                                navController.navigate(Routes.WEATHER_HISTORY_ROUTE)
-                            }
-                            .padding(16.dp)
-                ) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(
-                            text = "HISTORY",
-                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
-                            color = Color.White.copy(alpha = 0.7f),
-                            fontSize = 11.sp
-                        )
-
-                        Text(
-                            text = "Weather Data",
-                            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-                            color = Color.White,
-                            fontSize = 32.sp
-                        )
-
-                        Text(
-                            text = "Browse historical data",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color.White.copy(alpha = 0.7f),
-                            fontSize = 12.sp
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(110.dp))
-            }
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .fillMaxHeight()
-                    .padding(horizontal = 16.dp, vertical = 14.dp)
-            ) {
-                Box(modifier = Modifier.align(Alignment.TopEnd)) {
-                    FloatingActionButton(
-                        onClick = { showSettingsMenu = true },
-                        modifier = Modifier.size(58.dp),
-                        shape = CircleShape,
-                        containerColor = Color(0xFF2C4E73),
-                        contentColor = Color.White,
-                        elevation = FloatingActionButtonDefaults.elevation(
-                            defaultElevation = 6.dp,
-                            pressedElevation = 10.dp
-                        )
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Settings,
-                            contentDescription = "Setari"
-                        )
-                    }
-
-                    DropdownMenu(
-                        expanded = showSettingsMenu,
-                        onDismissRequest = { showSettingsMenu = false },
-                        modifier = Modifier.background(Color(0xFF244263))
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text("Profil", color = Color.White) },
-                            onClick = {
-                                showSettingsMenu = false
-                                navController.navigate(Routes.PROFILE)
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Logout", color = Color.White) },
-                            onClick = {
-                                showSettingsMenu = false
-                                showDialog = true
-                            }
-                        )
-                    }
-                }
-
-                FloatingActionButton(
-                    onClick = { navController.navigate(Routes.SIMULATOR) },
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .size(68.dp),
-                    shape = CircleShape,
-                    containerColor = Color(0xFF5A83B4),
-                    contentColor = Color.White,
-                    elevation = FloatingActionButtonDefaults.elevation(
-                        defaultElevation = 6.dp,
-                        pressedElevation = 10.dp
-                    )
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_robot),
-                        contentDescription = "Weather Simulation",
-                        modifier = Modifier.size(30.dp)
-                    )
-                }
-            }
-
-            if (showDialog) {
-                AlertDialog(
-                    onDismissRequest = { showDialog = false },
-                    title = {
-                        Text(
-                            text = "Logout",
-                            color = AuthTitleColor,
-                            style = MaterialTheme.typography.titleLarge
-                        )
-                    },
-                    text = {
-                        Text(
-                            text = "Ești sigur că vrei să te deconectezi?",
-                            color = AuthFieldTextColor,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    },
-                    shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp),
-                    containerColor = Color(0xFF13263B).copy(alpha = 0.96f),
-                    confirmButton = {
-                        Button(
-                            onClick = {
-                                FirebaseAuth.getInstance().signOut()
-                                navController.navigate(Routes.LOGIN) {
-                                    popUpTo(Routes.MAIN) { inclusive = true }
-                                }
-                            },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = androidx.compose.ui.graphics.Color.Transparent,
-                                contentColor = AuthAccentColor
-                            ),
-                            border = BorderStroke(1.dp, AuthAccentColor),
-                            shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
-                            modifier = Modifier.padding(end = 8.dp)
-                        ) {
-                            Text("Da")
-                        }
-                    },
-                    dismissButton = {
-                        TextButton(onClick = { showDialog = false }) {
-                            Text("Anulează", color = AuthLinkColor)
-                        }
-                    }
-                )
+                Spacer(modifier = Modifier.height(24.dp))
             }
         }
     }
 }
+
+@Composable
+fun WeatherBottomNavBar(
+    onHomeClick: () -> Unit,
+    onWeatherDataClick: () -> Unit,
+    onSimulatorClick: () -> Unit,
+    onSettingsClick: () -> Unit
+) {
+    NavigationBar(
+        containerColor = Color(0xFF173A5E).copy(alpha = 0.96f),
+        tonalElevation = 8.dp
+    ) {
+        NavigationBarItem(
+            selected = true,
+            onClick = onHomeClick,
+            icon = {
+                Icon(
+                    imageVector = Icons.Rounded.Home,
+                    contentDescription = "Home"
+                )
+            },
+            label = { Text("Acasă") },
+            colors = navItemColors()
+        )
+
+        NavigationBarItem(
+            selected = false,
+            onClick = onWeatherDataClick,
+            icon = {
+                Icon(
+                    imageVector = Icons.Rounded.DateRange,
+                    contentDescription = "Weather Data"
+                )
+            },
+            label = { Text("Arhivă") },
+            colors = navItemColors()
+        )
+
+        NavigationBarItem(
+            selected = false,
+            onClick = onSimulatorClick,
+            icon = {
+                Icon(
+                    painter = painterResource(R.drawable.ic_sun),
+                    contentDescription = "Simulator",
+                    modifier = Modifier.size(24.dp)
+                )
+            },
+            label = { Text("Simulator") },
+            colors = navItemColors()
+        )
+
+        NavigationBarItem(
+            selected = false,
+            onClick = onSettingsClick,
+            icon = {
+                Icon(
+                    imageVector = Icons.Rounded.Settings,
+                    contentDescription = "Settings"
+                )
+            },
+            label = { Text("Setări") },
+            colors = navItemColors()
+        )
+    }
+}
+
+@Composable
+private fun navItemColors() = NavigationBarItemDefaults.colors(
+    selectedIconColor = Color.White,
+    selectedTextColor = Color.White,
+    unselectedIconColor = Color.White.copy(alpha = 0.65f),
+    unselectedTextColor = Color.White.copy(alpha = 0.65f),
+    indicatorColor = Color(0xFF5A83B4).copy(alpha = 0.55f)
+)
 
 private fun weatherBackground(code: Int, isDay: Boolean): List<Color> {
     if (!isDay) {

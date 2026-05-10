@@ -14,81 +14,132 @@ import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ExperimentalMaterial3Api
-
-
-enum class TempUnit { C, F }
-enum class PressureUnit { HPA, MMHG }
-enum class WindUnit { KMH, MS }
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.weathersimulator.ui.viewmodel.AuthViewModel
+import com.example.weathersimulator.ui.screens.auth.AuthBackground
+import com.example.weathersimulator.ui.screens.auth.AuthGlassCard
+import com.example.weathersimulator.ui.screens.auth.AuthPrimaryButton
+import com.example.weathersimulator.ui.screens.auth.AuthTitleColor
+import com.example.weathersimulator.ui.screens.auth.AuthSubtitleColor
+import com.example.weathersimulator.ui.screens.auth.AuthFieldTextColor
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(navController: NavController) {
-    var tempUnit by remember { mutableStateOf(TempUnit.C) }
-    var pressureUnit by remember { mutableStateOf(PressureUnit.HPA) }
-    var windUnit by remember { mutableStateOf(WindUnit.KMH) }
+fun SettingsScreen(
+    navController: NavController,
+    viewModel: AuthViewModel = hiltViewModel()
+) {
 
-    Scaffold(
-        containerColor = Color.White,
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text("Settings") },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = Color.White,
-                    titleContentColor = Color.Black,
-                    navigationIconContentColor = Color.Black
-                ),
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+    val state = viewModel.state.collectAsState().value
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    listOf(
+                        Color(0xFF496A93),
+                        Color(0xFF36577E),
+                        Color(0xFF29496B)
+                    )
+                )
+            )
+    ) {
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+
+            Spacer(modifier = Modifier.height(70.dp))
+
+            Text(
+                text = "Settings",
+                color = Color.White,
+                fontSize = 32.sp,
+                fontWeight = FontWeight.Bold
+            )
+
+            Spacer(modifier = Modifier.height(36.dp))
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(28.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = Color.White.copy(alpha = 0.12f)
+                )
+            ) {
+
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+
+                    Text(
+                        text = "Profil",
+                        color = Color.White,
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    Text(
+                        text = state.user?.name ?: "Unknown user",
+                        color = Color.White,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    Text(
+                        text = state.user?.email ?: "No email",
+                        color = Color.White.copy(alpha = 0.75f),
+                        fontSize = 15.sp
+                    )
+
+                    Spacer(modifier = Modifier.height(32.dp))
+
+                    Button(
+                        onClick = {
+                            viewModel.logout()
+
+                            navController.navigate(Routes.LOGIN) {
+                                popUpTo(0)
+                            }
+                        },
+                        shape = RoundedCornerShape(18.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF183A5D)
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(58.dp)
+                    ) {
+
+                        Text(
+                            text = "Logout",
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.SemiBold
                         )
                     }
                 }
-            )
-        }
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .padding(padding)
-                .padding(16.dp)
-                .fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(18.dp)
-        ) {
-            Text("Units", style = MaterialTheme.typography.headlineSmall)
-
-            UnitSection(
-                title = "Temperature",
-                options = listOf("Celsius (°C)" to TempUnit.C, "Fahrenheit (°F)" to TempUnit.F),
-                selected = tempUnit,
-                onSelect = { tempUnit = it }
-            )
-
-            UnitSection(
-                title = "Pressure",
-                options = listOf("hPa" to PressureUnit.HPA, "mmHg" to PressureUnit.MMHG),
-                selected = pressureUnit,
-                onSelect = { pressureUnit = it }
-            )
-
-            UnitSection(
-                title = "Wind speed",
-                options = listOf("km/h" to WindUnit.KMH, "m/s" to WindUnit.MS),
-                selected = windUnit,
-                onSelect = { windUnit = it }
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Button(
-                onClick = {
-                    navController.navigate(Routes.MAIN) {
-                        popUpTo(Routes.SETTINGS) { inclusive = true }
-                    }
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Save")
             }
         }
     }

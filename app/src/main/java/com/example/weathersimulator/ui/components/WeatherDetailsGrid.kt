@@ -29,6 +29,7 @@ import kotlin.math.ln
 import kotlin.math.sin
 import kotlin.math.tan
 import kotlin.math.PI
+import androidx.compose.ui.Alignment
 
 @Composable
 fun WeatherDetailsGrid(
@@ -89,7 +90,7 @@ fun WeatherDetailsGrid(
             WeatherDetailCard(
                 title = "UMIDITATE",
                 value = "${current.humidity?.toInt() ?: "--"}%",
-                subtitle = "Punctul de roua: ${calculateDewPoint(current.temperature ?: 0.0, current.humidity ?: 0)}°",
+                subtitle = "Punctul de rouă: ${calculateDewPoint(current.temperature ?: 0.0, current.humidity ?: 0)}°",
                 modifier = Modifier.weight(1f)
             )
         }
@@ -99,10 +100,10 @@ fun WeatherDetailsGrid(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            WeatherDetailCard(
+            MoonPhaseCard(
                 title = "FAZA LUNII",
-                value = moonPhase.name,
-                subtitle = "Iluminare: ${moonPhase.illuminationPercent}%",
+                phaseName = moonPhase.name,
+                illumination = moonPhase.illuminationPercent,
                 modifier = Modifier.weight(1f)
             )
 
@@ -156,6 +157,65 @@ private fun WeatherDetailCard(
                 fontSize = 12.sp
             )
         }
+    }
+}
+
+@Composable
+private fun MoonPhaseCard(
+    title: String,
+    phaseName: String,
+    illumination: Int,
+    modifier: Modifier = Modifier
+) {
+    val moonIcon = moonPhaseIcon(phaseName)
+
+    Box(
+        modifier = modifier
+            .background(
+                color = Color.White.copy(alpha = 0.14f),
+                shape = RoundedCornerShape(20.dp)
+            )
+            .padding(16.dp)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalAlignment = Alignment.Start
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                color = Color.White.copy(alpha = 0.7f),
+                fontSize = 11.sp
+            )
+
+            Text(
+                text = moonIcon,
+                fontSize = 44.sp,
+                color = Color.White
+            )
+
+            Text(
+                text = "$phaseName • $illumination%",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.White.copy(alpha = 0.75f),
+                fontSize = 12.sp
+            )
+        }
+    }
+}
+
+private fun moonPhaseIcon(phaseName: String): String {
+    return when (phaseName) {
+        "Lună nouă" -> "🌑"
+        "Semilună în creștere" -> "🌒"
+        "Primul pătrar" -> "🌓"
+        "Lună convexă în creștere" -> "🌔"
+        "Lună plină" -> "🌕"
+        "Lună convexă în descreștere" -> "🌖"
+        "Ultimul pătrar" -> "🌗"
+        "Semilună în descreștere" -> "🌘"
+        else -> "🌙"
     }
 }
 
