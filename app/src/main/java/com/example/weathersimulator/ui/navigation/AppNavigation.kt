@@ -67,13 +67,22 @@ fun AppNavigation() {
             WeatherSimulatorTheme(darkTheme = false, dynamicColor = false) {
                 WeatherHistoryScreen(
                     state = state,
+                    archiveCities = weatherVm.archiveCities,
                     onBackClick = {
-                        weatherVm.setHistoryMode(false)
+                        weatherVm.exitHistoryMode()
                         navController.popBackStack()
                     },
-                    onLoadHistory = { weatherVm.loadHistorical() },
-                    onMonthSelected = { monthKey ->
-                        weatherVm.selectHistoryMonth(monthKey)
+                    onLoadHistory = { 
+                        weatherVm.loadHistorical() 
+                    },
+                    onCitySelected = { 
+                        weatherVm.selectArchiveCity(it) 
+                    },
+                    onSourceSelected = {
+                        weatherVm.selectArchiveSource(it)
+                    },
+                    onMonthSelected = { 
+                        weatherVm.selectHistoryMonth(it) 
                     },
                     onOpenSelectedDay = {
                         navController.navigate(Routes.WEATHER_HISTORY_DAY_ROUTE)

@@ -41,13 +41,21 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.Composable
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ButtonDefaults
+import com.example.weathersimulator.data.repository.WeatherRepository
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WeatherHistoryScreen(
     state: WeatherUiState,
+    archiveCities: List<WeatherRepository.ArchiveCity>,
     onBackClick: () -> Unit,
     onLoadHistory: () -> Unit,
+    onCitySelected: (String) -> Unit,
+    onSourceSelected: (String) -> Unit,
     onMonthSelected: (String) -> Unit,
     onOpenSelectedDay: () -> Unit
 ) {
@@ -56,6 +64,7 @@ fun WeatherHistoryScreen(
     var selectedYear by remember { mutableStateOf<String?>(null) }
     var selectedMonthKey by remember { mutableStateOf<String?>(null) }
     var isMonthSelectionConfirmed by remember { mutableStateOf(state.selectedHistoryMonth != null) }
+    var cityExpanded by remember { mutableStateOf(false) }
     val scrollState = rememberScrollState()
     val availableYears = remember(state.availableHistoryMonths) {
         state.availableHistoryMonths
@@ -191,7 +200,7 @@ fun WeatherHistoryScreen(
                                         color = Color(0xFFBEE7FF)
                                     )
                                     Text(
-                                        text = "Date locale din CSV",
+                                        text = "CSV local dacă există, API istoric dacă nu există",
                                         style = MaterialTheme.typography.labelMedium,
                                         color = Color.White.copy(alpha = 0.7f)
                                     )
@@ -205,8 +214,159 @@ fun WeatherHistoryScreen(
                         ) {
                             Column(
                                 modifier = Modifier.padding(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Text(
+                                    text = "Select city",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = Color(0xFFBEE7FF),
+                                    fontWeight = FontWeight.Bold
+                                )
+
+                                Box {
+                                    Card(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable { cityExpanded = true },
+                                        colors = CardDefaults.cardColors(containerColor = Color(0xFF243852))
+                                    ) {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 14.dp, vertical = 16.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                text = state.selectedArchiveCity,
+                                                style = MaterialTheme.typography.titleMedium,
+                                                color = Color.White
+                                            )
+
+                                            Icon(
+                                                imageVector = Icons.Filled.ArrowDropDown,
+                                                contentDescription = null,
+                                                tint = Color(0xFFBEE7FF)
+                                            )
+                                        }
+                                    }
+
+                                    DropdownMenu(
+                                        expanded = cityExpanded,
+                                        onDismissRequest = { cityExpanded = false }
+                                    ) {
+                                        archiveCities.forEach { city ->
+                                            DropdownMenuItem(
+                                                text = { Text(city.name) },
+                                                onClick = {
+                                                    cityExpanded = false
+                                                    onCitySelected(city.name)
+                                                }
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFF182A45)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(16.dp),
                                 verticalArrangement = Arrangement.spacedBy(16.dp)
                             ) {
+
+                                if (state.selectedArchiveCity == "Timișoara") {
+
+                                    Spacer(modifier = Modifier.height(12.dp))
+
+                                    Card(
+                                        colors = CardDefaults.cardColors(
+                                            containerColor = Color(0xFF182A45)
+                                        ),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+
+                                        Column(
+                                            modifier = Modifier.padding(16.dp),
+                                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                                        ) {
+
+                                            Text(
+                                                text = "Data source",
+                                                style = MaterialTheme.typography.titleMedium,
+                                                color = Color(0xFFBEE7FF),
+                                                fontWeight = FontWeight.Bold
+                                            )
+
+                                            Row(
+                                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                            ) {
+
+                                                FilterChip(
+                                                    selected = state.selectedArchiveSource == "CSV",
+                                                    onClick = { onSourceSelected("CSV") },
+                                                    label = {
+                                                        Text(
+                                                            text = "CSV local",
+                                                            color = if (state.selectedArchiveSource == "CSV")
+                                                                Color(0xFF10243D)
+                                                            else
+                                                                Color(0xFFBEE7FF),
+                                                            fontWeight = FontWeight.SemiBold
+                                                        )
+                                                    },
+                                                    colors = FilterChipDefaults.filterChipColors(
+                                                        selectedContainerColor = Color(0xFFEDE7FF),
+                                                        containerColor = Color(0xFF243852),
+                                                        selectedLabelColor = Color(0xFF10243D),
+                                                        labelColor = Color(0xFFBEE7FF)
+                                                    ),
+                                                    border = FilterChipDefaults.filterChipBorder(
+                                                        enabled = true,
+                                                        selected = state.selectedArchiveSource == "CSV",
+                                                        borderColor = Color(0xFF6FA8DC),
+                                                        selectedBorderColor = Color(0xFFEDE7FF),
+                                                        borderWidth = 1.dp,
+                                                        selectedBorderWidth = 1.dp
+                                                    )
+                                                )
+
+                                                FilterChip(
+                                                    selected = state.selectedArchiveSource == "API",
+                                                    onClick = { onSourceSelected("API") },
+                                                    label = {
+                                                        Text(
+                                                            text = "API meteo",
+                                                            color = if (state.selectedArchiveSource == "API")
+                                                                Color(0xFF10243D)
+                                                            else
+                                                                Color(0xFFBEE7FF),
+                                                            fontWeight = FontWeight.SemiBold
+                                                        )
+                                                    },
+                                                    colors = FilterChipDefaults.filterChipColors(
+                                                        selectedContainerColor = Color(0xFFEDE7FF),
+                                                        containerColor = Color(0xFF243852),
+                                                        selectedLabelColor = Color(0xFF10243D),
+                                                        labelColor = Color(0xFFBEE7FF)
+                                                    ),
+                                                    border = FilterChipDefaults.filterChipBorder(
+                                                        enabled = true,
+                                                        selected = state.selectedArchiveSource == "API",
+                                                        borderColor = Color(0xFF6FA8DC),
+                                                        selectedBorderColor = Color(0xFFEDE7FF),
+                                                        borderWidth = 1.dp,
+                                                        selectedBorderWidth = 1.dp
+                                                    )
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+
                                 Text(
                                     text = "Select period",
                                     style = MaterialTheme.typography.titleMedium,

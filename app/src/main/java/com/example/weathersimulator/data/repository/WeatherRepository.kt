@@ -9,45 +9,102 @@ import com.example.weathersimulator.data.remote.weather.DailyDto
 import com.example.weathersimulator.data.remote.weather.HourlyDto
 import com.example.weathersimulator.data.remote.weather.OpenMeteoResponse
 import javax.inject.Inject
+import java.time.YearMonth
 
 class WeatherRepository @Inject constructor(
     private val api: OpenMeteoApi,
     private val csvReader: WeatherCsvReader
 ) {
-    private var cachedHistoricalDataset: WeatherCsvDataset? = null
-    private var cachedHistoricalForecast: OpenMeteoResponse? = null
+    private val cachedHistoricalDatasets = mutableMapOf<String, WeatherCsvDataset>()
+    private val cachedHistoricalForecasts = mutableMapOf<String, OpenMeteoResponse>()
+
+    data class ArchiveCity(
+        val name: String,
+        val latitude: Double,
+        val longitude: Double,
+        val csvFileName: String?
+    )
+
+    val archiveCities = listOf(
+        ArchiveCity(
+            name = "Timișoara",
+            latitude = 45.7489,
+            longitude = 21.2087,
+            csvFileName = "open-meteo-45.80N21.18E96m.csv"
+        ),
+        ArchiveCity("București", 44.4268, 26.1025, null),
+        ArchiveCity("Cluj-Napoca", 46.7712, 23.6236, null),
+        ArchiveCity("Iași", 47.1585, 27.6014, null),
+        ArchiveCity("Craiova", 44.3302, 23.7949, null),
+        ArchiveCity("Constanța", 44.1598, 28.6348, null),
+        ArchiveCity("Brașov", 45.6427, 25.5887, null)
+    )
 
     suspend fun getForecast(lat: Double, lon: Double): OpenMeteoResponse {
         return api.forecast(lat = lat, lon = lon)
     }
 
-    fun getHistoricalDataset(): WeatherCsvDataset {
-        val cached = cachedHistoricalDataset
+    fun getArchiveCity(name: String): ArchiveCity {
+        return archiveCities.firstOrNull { it.name == name } ?: archiveCities.first()
+    }
+
+    fun getHistoricalDataset(city: ArchiveCity): WeatherCsvDataset? {
+        val fileName = city.csvFileName ?: return null
+
+        val cached = cachedHistoricalDatasets[fileName]
         if (cached != null) return cached
 
-        val parsed = csvReader.read()
-        cachedHistoricalDataset = parsed
+        if (!csvReader.exists(fileName)) return null
+
+        val parsed = csvReader.read(fileName)
+        cachedHistoricalDatasets[fileName] = parsed
         return parsed
     }
 
-    fun getHistoricalForecast(): OpenMeteoResponse {
-        val cached = cachedHistoricalForecast
-        if (cached != null) return cached
+    suspend fun getHistoricalForecast(
+        cityName: String,
+        monthKey: String? = null,
+        source: String = "CSV"
+    ): OpenMeteoResponse {
+        val city = getArchiveCity(cityName)
+        val cacheKey = "${city.name}_${source}_${monthKey ?: "csv"}"
 
-        val dataset = getHistoricalDataset()
-        val response = getHistoricalForecast(dataset)
-        cachedHistoricalForecast = response
+        cachedHistoricalForecasts[cacheKey]?.let { return it }
+
+        val shouldUseCsv =
+            city.csvFileName != null &&
+            source == "CSV"
+
+        if (shouldUseCsv) {
+            val csvDataset = getHistoricalDataset(city)
+
+            if (csvDataset != null) {
+                val response = csvDataset.toOpenMeteoResponse()
+                cachedHistoricalForecasts[cacheKey] = response
+                return response
+            }
+        }
+
+        val safeMonthKey = monthKey ?: "2025-01"
+        val response = getHistoricalForecastFromApi(city, safeMonthKey)
+        cachedHistoricalForecasts[cacheKey] = response
         return response
     }
 
-    fun getHistoricalForecast(dataset: WeatherCsvDataset): OpenMeteoResponse {
-        val cached = cachedHistoricalForecast
-        if (cached != null) return cached
+    private suspend fun getHistoricalForecastFromApi(
+        city: ArchiveCity,
+        monthKey: String
+    ): OpenMeteoResponse {
+        val yearMonth = YearMonth.parse(monthKey)
+        val startDate = yearMonth.atDay(1).toString()
+        val endDate = yearMonth.atEndOfMonth().toString()
 
-        val response = dataset.toOpenMeteoResponse()
-        cachedHistoricalDataset = dataset
-        cachedHistoricalForecast = response
-        return response
+        return api.archive(
+            lat = city.latitude,
+            lon = city.longitude,
+            startDate = startDate,
+            endDate = endDate
+        )
     }
 
     private fun WeatherCsvDataset.toOpenMeteoResponse(): OpenMeteoResponse {
@@ -57,6 +114,7 @@ class WeatherRepository @Inject constructor(
             temperature = hourlyRows.map { it.temperatureC },
             precipitation = hourlyRows.map { it.precipitationMm },
             rain = hourlyRows.map { it.rainMm },
+            snowfall = hourlyRows.map { it.snowfallCm },
             weatherCode = hourlyRows.map { it.weatherCode },
             cloudCover = hourlyRows.map { it.cloudCoverPercent },
             windSpeed = hourlyRows.map { it.windSpeed10mKmh },
@@ -81,7 +139,9 @@ class WeatherRepository @Inject constructor(
                 weatherCodeCountsByDate[date].mostFrequentWeatherCode()
             },
             tempMax = parsedDailyRows.map { it.temperatureMaxC },
-            tempMin = parsedDailyRows.map { it.temperatureMinC }
+            tempMin = parsedDailyRows.map { it.temperatureMinC },
+            sunrise = parsedDailyRows.map { it.sunrise },
+            sunset = parsedDailyRows.map { it.sunset }
         )
 
         val latestRow = hourlyRows.lastOrNull()

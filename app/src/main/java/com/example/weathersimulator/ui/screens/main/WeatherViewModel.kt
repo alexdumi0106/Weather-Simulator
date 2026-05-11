@@ -30,6 +30,7 @@ class WeatherViewModel @Inject constructor(
 
     private val _state = MutableStateFlow(WeatherUiState())
     val state: StateFlow<WeatherUiState> = _state
+    val archiveCities = weatherRepository.archiveCities
 
     private var lastFetchAtMs: Long = 0L
     private var lastFetchLat: Double? = null
@@ -43,9 +44,6 @@ class WeatherViewModel @Inject constructor(
     private val minRefreshIntervalMs = 60_000L
     private val minLocationDelta = 0.01
 
-    init {
-        warmUpHistoricalInBackground()
-    }
 
     fun load(lat: Double, lon: Double) {
         if (_state.value.isHistoryMode) return
@@ -106,28 +104,30 @@ class WeatherViewModel @Inject constructor(
     fun loadHistorical() {
         if (_state.value.isLoading) return
 
-        warmUpHistoricalInBackground()
-
         viewModelScope.launch {
-            val hasHistoricalCacheReady =
-                historicalCachedResponse != null && historicalDailyRowsByDate.isNotEmpty()
-
-            if (!hasHistoricalCacheReady) {
-                _state.update { it.copy(isLoading = true, error = null) }
-            } else {
-                _state.update { it.copy(error = null) }
-            }
+            _state.update { it.copy(isLoading = true, error = null) }
 
             try {
-                historicalWarmupJob?.join()
-                val response = preloadHistoricalData()
+                val selectedCityName = _state.value.selectedArchiveCity
+                val city = weatherRepository.getArchiveCity(selectedCityName)
 
+                val selectedMonth = _state.value.selectedHistoryMonth ?: "2025-01"
+
+                val response = preloadHistoricalData(selectedMonth)
                 applyHistoricalResponse(response)
 
-                val months = buildAvailableHistoryMonthsFromResponse(response)
-                val preferredMonth = _state.value.selectedHistoryMonth
-                val selectedMonth = preferredMonth
-                    ?.takeIf { key -> months.any { it.key == key } }
+                val isUsingCsv =
+                    city.csvFileName != null &&
+                    _state.value.selectedArchiveSource == "CSV"
+
+                val months = if (isUsingCsv) {
+                    buildAvailableHistoryMonthsFromResponse(response)
+                } else {
+                    buildAvailableHistoryMonths()
+                }
+
+                val finalSelectedMonth = selectedMonth
+                    .takeIf { key -> months.any { it.key == key } }
                     ?: months.firstOrNull()?.key
 
                 _state.update {
@@ -135,12 +135,12 @@ class WeatherViewModel @Inject constructor(
                         isLoading = false,
                         isHistoryMode = true,
                         availableHistoryMonths = months,
-                        selectedHistoryMonth = selectedMonth
+                        selectedHistoryMonth = finalSelectedMonth
                     )
                 }
 
-                if (selectedMonth != null) {
-                    selectHistoryMonth(selectedMonth)
+                if (finalSelectedMonth != null) {
+                    selectHistoryMonth(finalSelectedMonth)
                 }
             } catch (e: Exception) {
                 _state.update {
@@ -154,37 +154,97 @@ class WeatherViewModel @Inject constructor(
     }
 
     private fun warmUpHistoricalInBackground() {
-        if (historicalWarmupJob?.isActive == true) return
-        if (historicalCachedResponse != null && historicalDailyRowsByDate.isNotEmpty()) return
-
-        historicalWarmupJob = viewModelScope.launch(Dispatchers.Default) {
-            runCatching { preloadHistoricalData() }
-                .onFailure { error ->
-                    Log.w("WeatherViewModel", "Historical preload failed: ${error.message}")
-                }
-        }
+        // Dezactivat pentru varianta mixtă CSV + API.
     }
 
-    private suspend fun preloadHistoricalData(): OpenMeteoResponse {
-        val cached = historicalCachedResponse
-        if (cached != null && historicalDailyRowsByDate.isNotEmpty()) {
-            return cached
+    private suspend fun preloadHistoricalData(monthKey: String): OpenMeteoResponse {
+        val selectedCity = _state.value.selectedArchiveCity
+        val city = weatherRepository.getArchiveCity(selectedCity)
+
+        val cacheStillValid =
+            historicalCachedResponse != null &&
+            _state.value.selectedHistoryMonth == monthKey
+
+        if (cacheStillValid) {
+            return historicalCachedResponse!!
         }
 
-        val historicalDataset = withContext(Dispatchers.IO) {
-            weatherRepository.getHistoricalDataset()
-        }
+        val shouldUseCsv =
+            city.csvFileName != null &&
+            _state.value.selectedArchiveSource == "CSV"
 
-        historicalDailyRowsByDate = historicalDataset.dailyRows.associateBy { it.time }
-        historicalTimezone = historicalDataset.timezone
-        historicalCsvUtcOffsetSeconds = historicalDataset.utcOffsetSeconds
+        if (shouldUseCsv) {
+            val historicalDataset = withContext(Dispatchers.IO) {
+                weatherRepository.getHistoricalDataset(city)
+            }
+
+            if (historicalDataset != null) {
+                historicalDailyRowsByDate = historicalDataset.dailyRows.associateBy { it.time }
+                historicalTimezone = historicalDataset.timezone
+                historicalCsvUtcOffsetSeconds = historicalDataset.utcOffsetSeconds
+            }
+        } else {
+            historicalDailyRowsByDate = emptyMap()
+            historicalTimezone = "Europe/Bucharest"
+            historicalCsvUtcOffsetSeconds = 10_800
+        }
 
         val response = withContext(Dispatchers.IO) {
-            weatherRepository.getHistoricalForecast(historicalDataset)
+            weatherRepository.getHistoricalForecast(
+                cityName = selectedCity,
+                monthKey = monthKey,
+                source = _state.value.selectedArchiveSource
+            )
         }
 
         historicalCachedResponse = response
         return response
+    }
+
+    fun selectArchiveCity(cityName: String) {
+        historicalCachedResponse = null
+        historicalDailyRowsByDate = emptyMap()
+        historicalWarmupJob?.cancel()
+        historicalWarmupJob = null
+
+        _state.update {
+            it.copy(
+                selectedArchiveCity = cityName,
+                availableHistoryMonths = emptyList(),
+                availableHistoryDays = emptyList(),
+                selectedHistoryMonth = null,
+                selectedHistoryDay = null,
+                historicalHourlyForecast = emptyList(),
+                historyMonthSummary = null,
+                historyDaySummary = null,
+                data = null,
+                error = null
+            )
+        }
+
+        loadHistorical()
+    }
+
+    fun selectArchiveSource(source: String) {
+        historicalCachedResponse = null
+        historicalDailyRowsByDate = emptyMap()
+
+        _state.update {
+            it.copy(
+                selectedArchiveSource = source,
+                selectedHistoryMonth = null,
+                selectedHistoryDay = null,
+                availableHistoryMonths = emptyList(),
+                availableHistoryDays = emptyList(),
+                historicalHourlyForecast = emptyList(),
+                historyMonthSummary = null,
+                historyDaySummary = null,
+                data = null,
+                error = null
+            )
+        }
+
+        loadHistorical()
     }
 
     fun setHistoryMode(enabled: Boolean) {
@@ -193,6 +253,35 @@ class WeatherViewModel @Inject constructor(
                 isHistoryMode = enabled,
                 error = if (enabled) null else it.error
             )
+        }
+    }
+
+    fun exitHistoryMode() {
+        historicalCachedResponse = null
+        historicalDailyRowsByDate = emptyMap()
+
+        _state.update {
+            it.copy(
+                isHistoryMode = false,
+                selectedHistoryMonth = null,
+                selectedHistoryDay = null,
+                historicalHourlyForecast = emptyList(),
+                historyMonthSummary = null,
+                historyDaySummary = null,
+                availableHistoryDays = emptyList(),
+                availableHistoryMonths = emptyList(),
+                error = null
+            )
+        }
+
+        val currentWeather = cachedResponse
+        val lat = lastFetchLat
+        val lon = lastFetchLon
+
+        if (currentWeather != null) {
+            applyResponse(currentWeather)
+        } else if (lat != null && lon != null) {
+            load(lat, lon)
         }
     }
 
@@ -229,6 +318,50 @@ class WeatherViewModel @Inject constructor(
     }
 
     fun selectHistoryMonth(monthKey: String) {
+        val city = weatherRepository.getArchiveCity(_state.value.selectedArchiveCity)
+
+        val isUsingApi =
+            city.csvFileName == null ||
+            _state.value.selectedArchiveSource == "API"
+
+        if (isUsingApi) {
+            historicalCachedResponse = null
+
+            viewModelScope.launch {
+                _state.update {
+                    it.copy(
+                        isLoading = true,
+                        selectedHistoryMonth = monthKey,
+                        selectedHistoryDay = null,
+                        availableHistoryDays = emptyList(),
+                        historicalHourlyForecast = emptyList(),
+                        historyMonthSummary = null,
+                        historyDaySummary = null,
+                        error = null
+                    )
+                }
+
+                try {
+                    val response = preloadHistoricalData(monthKey)
+                    applyHistoricalResponse(response)
+                    applySelectedMonthFromLoadedResponse(monthKey)
+                } catch (e: Exception) {
+                    _state.update {
+                        it.copy(
+                            isLoading = false,
+                            error = e.message ?: "Failed to load selected historical month"
+                        )
+                    }
+                }
+            }
+
+            return
+        }
+
+        applySelectedMonthFromLoadedResponse(monthKey)
+    }
+
+    private fun applySelectedMonthFromLoadedResponse(monthKey: String) {
         val response = _state.value.data ?: return
         val hourly = response.hourly ?: return
 
@@ -256,11 +389,11 @@ class WeatherViewModel @Inject constructor(
             }
 
         val monthSummary = buildHistoryMonthSummary(monthKey, monthRows, hourly)
-
         val firstDay = days.firstOrNull()?.key
 
         _state.update {
             it.copy(
+                isLoading = false,
                 selectedHistoryMonth = monthKey,
                 availableHistoryDays = days,
                 selectedHistoryDay = firstDay,
@@ -305,7 +438,13 @@ class WeatherViewModel @Inject constructor(
         }
 
         val dayNightStats = computeDailyDayNightStats(hourly)[dayKey]
-        val daySummary = buildHistoryDaySummary(dayKey, dayIndexes, hourly, dayNightStats)
+        val daySummary = buildHistoryDaySummary(
+            dayKey = dayKey,
+            indexes = dayIndexes,
+            hourly = hourly,
+            dayNightStats = dayNightStats,
+            response = response
+        )
 
         _state.update {
             it.copy(
@@ -472,7 +611,8 @@ class WeatherViewModel @Inject constructor(
         dayKey: String,
         indexes: List<Int>,
         hourly: com.example.weathersimulator.data.remote.weather.HourlyDto,
-        dayNightStats: DayNightStats?
+        dayNightStats: DayNightStats?,
+        response: OpenMeteoResponse
     ): HistoryDaySummaryUi? {
         if (indexes.isEmpty()) return null
 
@@ -486,9 +626,22 @@ class WeatherViewModel @Inject constructor(
         val nightWeatherCodes = nightIndexes.map { hourly.weatherCode[it] }
         val nightCloudCovers = nightIndexes.map { hourly.cloudCover[it] }
         val dailyRow = historicalDailyRowsByDate[dayKey]
+        val daily = response.daily
+        val dailyIndex = daily?.time?.indexOf(dayKey) ?: -1
 
-        val sunrise = dailyRow?.sunrise?.let { normalizeHistoricalSolarTime(it) }
-        val sunset = dailyRow?.sunset?.let { normalizeHistoricalSolarTime(it) }
+        val sunriseFromCsv = dailyRow?.sunrise
+        val sunsetFromCsv = dailyRow?.sunset
+
+        val sunriseFromApi = if (dailyIndex >= 0) {
+            daily?.sunrise?.getOrNull(dailyIndex)
+        } else null
+
+        val sunsetFromApi = if (dailyIndex >= 0) {
+            daily?.sunset?.getOrNull(dailyIndex)
+        } else null
+
+        val sunrise = (sunriseFromCsv ?: sunriseFromApi)?.let { normalizeHistoricalSolarTime(it) }
+        val sunset = (sunsetFromCsv ?: sunsetFromApi)?.let { normalizeHistoricalSolarTime(it) }
 
         val fallbackWeatherCode = hourly.weatherCode[indexes.firstOrNull() ?: 0]
         val fallbackCloudCover = hourly.cloudCover[indexes.firstOrNull() ?: 0]

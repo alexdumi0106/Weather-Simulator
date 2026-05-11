@@ -26,4 +26,21 @@ interface OpenMeteoApi {
 
         @Query("timezone") timezone: String = "auto"
     ): OpenMeteoResponse
+
+    @GET("https://archive-api.open-meteo.com/v1/archive")
+    suspend fun archive(
+        @Query("latitude") lat: Double,
+        @Query("longitude") lon: Double,
+
+        @Query("start_date") startDate: String,
+        @Query("end_date") endDate: String,
+
+        @Query("hourly") hourly: String =
+            "temperature_2m,relative_humidity_2m,surface_pressure,cloud_cover,wind_speed_10m,rain,snowfall,precipitation,wind_gusts_10m,weather_code,is_day",
+
+        @Query("daily") daily: String =
+            "weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset",
+
+        @Query("timezone") timezone: String = "Europe/Bucharest"
+    ): OpenMeteoResponse
 }

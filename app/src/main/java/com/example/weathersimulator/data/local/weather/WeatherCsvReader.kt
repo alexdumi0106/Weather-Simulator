@@ -42,14 +42,14 @@ data class WeatherCsvDailyRow(
 )
 
 class WeatherCsvReader(
-    private val context: Context,
-    private val fileName: String = "open-meteo-45.80N21.18E96m.csv"
+    private val context: Context
 ) {
+    private val defaultFileName = "open-meteo-45.80N21.18E96m.csv"
 
     private val hourlyHeaderPrefix = "time,temperature_2m (°C)"
     private val dailyHeaderPrefix = "time,temperature_2m_max (°C)"
 
-    fun read(): WeatherCsvDataset {
+    fun read(fileName: String = defaultFileName): WeatherCsvDataset {
         context.assets.open(fileName).bufferedReader().use { reader ->
             var metadata: List<String>? = null
             var inHourlySection = false
@@ -116,6 +116,15 @@ class WeatherCsvReader(
                 rows = dataRows,
                 dailyRows = dailyRows
             )
+        }
+    }
+
+    fun exists(fileName: String): Boolean {
+        return try {
+            context.assets.open(fileName).close()
+            true
+        } catch (e: Exception) {
+            false
         }
     }
 

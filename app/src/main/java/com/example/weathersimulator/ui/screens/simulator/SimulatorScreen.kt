@@ -1299,22 +1299,22 @@ private fun cloudProfileFor(
         )
 
         "Predominant însorit" -> CloudProfile(
-            baseColor = Color(0xFFDDE7F0).copy(alpha = alpha * 1.00f),
+            baseColor = Color(0xFFDDE7F0).copy(alpha = (alpha * 1.15f).coerceIn(0f, 1f)),
             bands = denseOvercastBands(count = 5)
         )
 
         "Parțial însorit" -> CloudProfile(
-            baseColor = Color(0xFFDDE7F0).copy(alpha = alpha * 0.96f),
+            baseColor = Color(0xFFDDE7F0).copy(alpha = (alpha * 1.15f).coerceIn(0f, 1f)),
             bands = denseOvercastBands(count = 10)
         )
 
         "Nori și soare" -> CloudProfile(
-            baseColor = Color(0xFFDDE7F0).copy(alpha = alpha * 0.86f),
+            baseColor = Color(0xFFDDE7F0).copy(alpha = (alpha * 1.15f).coerceIn(0f, 1f)),
             bands = denseOvercastBands(count = 20)
         )
 
         "Predominant noros" -> CloudProfile(
-            baseColor = Color(0xFFDDE7F0).copy(alpha = alpha * 0.86f),
+            baseColor = Color(0xFFDDE7F0).copy(alpha = (alpha * 1.15f).coerceIn(0f, 1f)),
             bands = denseOvercastBands(count = 40)
         )
 

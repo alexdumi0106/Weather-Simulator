@@ -11,6 +11,8 @@ data class WeatherUiState(
 
     // History mode
     val isHistoryMode: Boolean = false,
+    val selectedArchiveCity: String = "Timișoara",
+    val selectedArchiveSource: String = "CSV",
     val availableHistoryMonths: List<HistoryMonthUi> = emptyList(),
     val selectedHistoryMonth: String? = null,
     val availableHistoryDays: List<HistoryDayUi> = emptyList(),
