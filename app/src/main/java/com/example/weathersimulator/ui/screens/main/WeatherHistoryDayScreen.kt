@@ -71,7 +71,7 @@ fun WeatherHistoryDayScreen(
         containerColor = Color(0xFF10243A),
         topBar = {
             TopAppBar(
-                title = { Text("Weather History Details") },
+                title = { Text("Detalii istoric meteo") },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
@@ -114,14 +114,9 @@ fun WeatherHistoryDayScreen(
                             verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             Text(
-                                text = "Daily history",
+                                text = "Alege ziua direct din calendarul lunii selectate.",
                                 style = MaterialTheme.typography.headlineSmall,
                                 color = Color.White
-                            )
-                            Text(
-                                text = "Alege ziua direct din calendarul lunii selectate.",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = Color.White.copy(alpha = 0.9f)
                             )
                         }
                     }
@@ -138,11 +133,6 @@ fun WeatherHistoryDayScreen(
                             modifier = Modifier.padding(16.dp),
                             verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
-                            Text(
-                                text = "Select day",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = Color.White.copy(alpha = 0.8f)
-                            )
 
                             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                                 Text(
@@ -158,7 +148,7 @@ fun WeatherHistoryDayScreen(
                                 )
 
                                 Row(modifier = Modifier.fillMaxWidth()) {
-                                    listOf("Mo", "Tu", "We", "Th", "Fr", "Sa", "Su").forEach { label ->
+                                    listOf("Lu", "Ma", "Mi", "Jo", "Vi", "Sa", "Du").forEach { label ->
                                         Text(
                                             text = label,
                                             style = MaterialTheme.typography.labelMedium,
@@ -282,7 +272,7 @@ fun WeatherHistoryDayScreen(
                                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(
-                                            "Average humidity",
+                                            "Umiditate medie",
                                             style = MaterialTheme.typography.labelMedium,
                                             color = Color.White.copy(alpha = 0.8f)
                                         )
@@ -294,7 +284,7 @@ fun WeatherHistoryDayScreen(
                                     }
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(
-                                            "Average pressure",
+                                            "Presiune medie",
                                             style = MaterialTheme.typography.labelMedium,
                                             color = Color.White.copy(alpha = 0.8f)
                                         )
@@ -309,7 +299,7 @@ fun WeatherHistoryDayScreen(
                                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(
-                                            "Sunrise",
+                                            "Răsărit",
                                             style = MaterialTheme.typography.labelMedium,
                                             color = Color.White.copy(alpha = 0.8f)
                                         )
@@ -321,7 +311,7 @@ fun WeatherHistoryDayScreen(
                                     }
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(
-                                            "Sunset",
+                                            "Apus",
                                             style = MaterialTheme.typography.labelMedium,
                                             color = Color.White.copy(alpha = 0.8f)
                                         )
@@ -339,8 +329,9 @@ fun WeatherHistoryDayScreen(
 
                 item {
                     Text(
-                        text = "Hourly weather",
-                        style = MaterialTheme.typography.titleMedium
+                        text = "Prognoză meteo pe ore",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color.White
                     )
                 }
 
@@ -495,7 +486,7 @@ private fun HistoricalHourRow(
                     color = Color.White
                 )
                 Text(
-                    text = "Cloud cover: ${item.cloudCover}%",
+                    text = "Acoperire nori: ${item.cloudCover}%",
                     style = MaterialTheme.typography.bodySmall,
                     color = Color.White.copy(alpha = 0.78f)
                 )

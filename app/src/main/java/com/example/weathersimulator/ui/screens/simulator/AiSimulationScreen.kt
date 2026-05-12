@@ -93,7 +93,7 @@ fun AiSimulationScreen(
                                 contentColor = Color.White
                             )
                         ) {
-                            Text("+ New chat")
+                            Text("+ Conversație nouă")
                         }
 
                         OutlinedButton(
@@ -112,7 +112,7 @@ fun AiSimulationScreen(
                                 )
                             )
                         ) {
-                            Text("Clear chat")
+                            Text("Elimină conversațiile")
                         }
 
                         LazyColumn(
@@ -151,7 +151,7 @@ fun AiSimulationScreen(
                         title = {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(
-                                    text = "AI Weather Simulation",
+                                    text = "Simulare meteo AI",
                                     style = MaterialTheme.typography.titleLarge,
                                     color = Color.White
                                 )
@@ -166,7 +166,7 @@ fun AiSimulationScreen(
                             TextButton(onClick = {
                                 scope.launch { drawerState.open() }
                             }) {
-                                Text("Chats", color = Color.White)
+                                Text("Conversații", color = Color.White)
                             }
                         },
                         actions = {
@@ -381,7 +381,7 @@ fun AiSimulationScreen(
                                         color = Color.White
                                     )
                                     Text(
-                                        text = "Deschide chat-ul, alege o conversație din drawer sau trimite primul prompt.",
+                                        text = "Deschide lista de conversații, alege una existentă sau trimite primul mesaj.",
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = Color(0xFFBEE7FF)
                                     )

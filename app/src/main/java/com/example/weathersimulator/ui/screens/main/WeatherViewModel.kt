@@ -22,6 +22,7 @@ import javax.inject.Inject
 import android.util.Log
 import kotlin.math.abs
 import kotlin.math.roundToInt
+import java.time.LocalDate
 
 @HiltViewModel
 class WeatherViewModel @Inject constructor(
@@ -476,9 +477,15 @@ class WeatherViewModel @Inject constructor(
     }
 
     private fun buildAvailableHistoryMonths(): List<HistoryMonthUi> {
+        val yesterday = LocalDate.now().minusDays(1)
+        val endMonthKey = "%04d-%02d".format(
+            yesterday.year,
+            yesterday.monthValue
+        )
+
         return buildHistoricalMonthRange(
             startMonthKey = "2012-01",
-            endMonthKey = "2025-12"
+            endMonthKey = endMonthKey
         )
     }
 

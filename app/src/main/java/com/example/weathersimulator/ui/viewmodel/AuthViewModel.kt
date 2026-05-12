@@ -154,17 +154,25 @@ class AuthViewModel @Inject constructor(
 
                         firebaseUser.updateProfile(request)
                             .addOnCompleteListener {
+                                val updatedUser = user.copy(
+                                    name = fullName
+                                )
+
                                 _state.value = _state.value.copy(
                                     isLoading = false,
                                     success = true,
-                                    user = user
+                                    user = updatedUser
                                 )
                             }
                     } else {
+                        val updatedUser = user.copy(
+                            name = fullName
+                        )
+
                         _state.value = _state.value.copy(
                             isLoading = false,
                             success = true,
-                            user = user
+                            user = updatedUser
                         )
                     }
                 }
@@ -212,15 +220,23 @@ class AuthViewModel @Inject constructor(
     }
 
     fun loadCurrentUser() {
-        val uid = auth.currentUser?.uid ?: return
+        val firebaseUser = auth.currentUser ?: return
+        val uid = firebaseUser.uid
 
         viewModelScope.launch {
             val localUser = userRepository.getLocalUser(uid)
-            if (localUser != null) {
-                _state.value = _state.value.copy(user = localUser)
-            }
+
+            val user = localUser ?: User(
+                id = uid,
+                email = firebaseUser.email.orEmpty(),
+                name = firebaseUser.displayName.orEmpty(),
+                preferences = emptyMap()
+            )
+
+            _state.value = _state.value.copy(
+                user = user
+            )
         }
     }
-
 
 }

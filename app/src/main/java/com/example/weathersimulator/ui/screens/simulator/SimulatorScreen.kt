@@ -115,19 +115,19 @@ private fun computeWeatherDescription(
 ): Pair<Int, String> {
     val cc = (cloudCoverage / 20f).roundToInt() * 20f
     return when {
-        humidity > 95 && pressure < 1010 && wind < 10 ->
+        humidity > 95 && pressure >= 1010 && wind < 10 ->
             R.drawable.icon_weather_11 to "Ceață"
 
-        temperature < 0 && humidity > 70 && cloudCoverage > 60 ->
+        temperature <= 0 && humidity >= 70 && cloudCoverage >= 60 ->
             R.drawable.icon_weather_22 to "Ninsoare"
 
-        humidity > 70 && wind >= 40 && pressure < 1000 && temperature > 0 && cloudCoverage in 60f..80f ->
+        humidity >= 70 && wind >= 40 && pressure < 1000 && temperature > 0 && cloudCoverage in 60f..80f ->
             R.drawable.icon_weather_16 to "Furtună cu soare"
 
-        humidity > 90 && wind >= 40 && pressure < 1000 && cloudCoverage > 80->
+        humidity >= 70 && wind >= 40 && pressure < 1000 && cloudCoverage > 80->
             R.drawable.icon_weather_15 to "Furtună"
 
-        humidity > 85 && pressure < 1010 && cloudCoverage > 80 ->
+        humidity >= 85 && pressure <= 1010 && cloudCoverage >= 80 ->
             R.drawable.icon_weather_18 to "Ploaie"
 
         cc == 0f   -> R.drawable.icon_weather_01 to "Însorit"
@@ -210,14 +210,18 @@ fun SimulatorScreen(
     }
 
     // Ploaie (loop) când sunt condiții de ploaie
+    // Ploaie continuă când sunt condiții de ploaie SAU furtună
     LaunchedEffect(descriptionNow, soundsEnabled) {
         if (!soundsEnabled) {
             audio.stopRain()
             return@LaunchedEffect
         }
 
-        if (isRainWeatherDescription(descriptionNow)) {
-            audio.startRainLoop(resId = R.raw.rain, volume = 0.6f)
+        val isRain = isRainWeatherDescription(descriptionNow)
+        val isStorm = isStormWeatherDescription(descriptionNow)
+
+        if (isRain || isStorm) {
+            audio.startRainLoop(resId = R.raw.rain, volume = 0.55f)
         } else {
             audio.stopRain()
         }
@@ -234,7 +238,7 @@ fun SimulatorScreen(
         }
 
         if (isStorm) {
-            audio.playThunder(R.raw.thunder)
+            audio.startThunderLoop(resId = R.raw.thunder, volume = 0.75f)
         } else {
             audio.stopThunder()
         }
@@ -266,7 +270,7 @@ fun SimulatorScreen(
             CenterAlignedTopAppBar(
                 title = {
                     Text(
-                        text = "Weather Simulator AI",
+                        text = "Simulator meteo",
                         color = Color.White,
                         fontSize = 20.sp,
                         fontWeight = FontWeight.SemiBold

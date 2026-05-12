@@ -55,19 +55,23 @@ class UserRepository @Inject constructor(
             val localUser = userDao.getUserByUid(uid)
 
             if (localUser != null) {
+                val firebaseName = result.user?.displayName.orEmpty()
+
                 Result.success(
                     User(
                         id = localUser.uid,
                         email = localUser.email,
-                        name = localUser.name,
+                        name = localUser.name.ifBlank { firebaseName },
                         preferences = emptyMap()
                     )
                 )
             } else {
+                val fullName = result.user?.displayName.orEmpty()
+
                 val newUser = User(
                     id = uid,
                     email = email,
-                    name = "",
+                    name = fullName,
                     preferences = emptyMap()
                 )
 

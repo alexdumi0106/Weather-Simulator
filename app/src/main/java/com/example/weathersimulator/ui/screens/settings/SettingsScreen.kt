@@ -35,6 +35,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.material.icons.filled.ArrowBack
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -44,6 +45,7 @@ fun SettingsScreen(
 ) {
 
     val state = viewModel.state.collectAsState().value
+    var showLogoutDialog by remember { mutableStateOf(false) }
 
     Box(
         modifier = Modifier
@@ -66,10 +68,32 @@ fun SettingsScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
 
-            Spacer(modifier = Modifier.height(70.dp))
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+
+                IconButton(
+                    onClick = {
+                        navController.popBackStack()
+                    }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ArrowBack,
+                        contentDescription = "Înapoi",
+                        tint = Color.White
+                    )
+                }
+
+                Spacer(modifier = Modifier.weight(1f))
+            }
 
             Text(
-                text = "Settings",
+                text = "Setări",
                 color = Color.White,
                 fontSize = 32.sp,
                 fontWeight = FontWeight.Bold
@@ -100,7 +124,9 @@ fun SettingsScreen(
                     Spacer(modifier = Modifier.height(20.dp))
 
                     Text(
-                        text = state.user?.name ?: "Unknown user",
+                        text = state.user?.name
+                            ?.takeIf { it.isNotBlank() }
+                            ?: "Utilizator necunoscut",
                         color = Color.White,
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Medium
@@ -109,7 +135,7 @@ fun SettingsScreen(
                     Spacer(modifier = Modifier.height(6.dp))
 
                     Text(
-                        text = state.user?.email ?: "No email",
+                        text = state.user?.email ?: "Email indisponibil",
                         color = Color.White.copy(alpha = 0.75f),
                         fontSize = 15.sp
                     )
@@ -118,11 +144,7 @@ fun SettingsScreen(
 
                     Button(
                         onClick = {
-                            viewModel.logout()
-
-                            navController.navigate(Routes.LOGIN) {
-                                popUpTo(0)
-                            }
+                            showLogoutDialog = true
                         },
                         shape = RoundedCornerShape(18.dp),
                         colors = ButtonDefaults.buttonColors(
@@ -134,7 +156,7 @@ fun SettingsScreen(
                     ) {
 
                         Text(
-                            text = "Logout",
+                            text = "Deconectare",
                             fontSize = 17.sp,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -142,6 +164,61 @@ fun SettingsScreen(
                 }
             }
         }
+    }
+
+    if (showLogoutDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showLogoutDialog = false
+            },
+            containerColor = Color(0xFF17314C),
+            shape = RoundedCornerShape(28.dp),
+            title = {
+                Text(
+                    text = "Confirmare deconectare",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text(
+                    text = "Ești sigur că dorești să te deconectezi de la aplicație?",
+                    color = Color(0xFFBEE7FF),
+                    lineHeight = 20.sp
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showLogoutDialog = false
+                        viewModel.logout()
+
+                        navController.navigate(Routes.LOGIN) {
+                            popUpTo(0)
+                        }
+                    }
+                ) {
+                    Text(
+                        text = "Da, deconectează-mă",
+                        color = Color(0xFFFFD6D6),
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showLogoutDialog = false
+                    }
+                ) {
+                    Text(
+                        text = "Anulează",
+                        color = Color(0xFFBEE7FF),
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+        )
     }
 }
 

@@ -56,6 +56,18 @@ class AudioController(private val context: Context) {
         }
     }
 
+    fun startThunderLoop(resId: Int, volume: Float = 0.75f) {
+        if (thunderPlayer?.isPlaying == true) return
+
+        thunderPlayer?.release()
+
+        thunderPlayer = MediaPlayer.create(context, resId).apply {
+            isLooping = true
+            setVolume(volume, volume)
+            start()
+        }
+    }
+
     fun startRainLoop(resId: Int, volume: Float = 0.6f) {
         if (rainPlayer?.isPlaying == true) {
             setRainVolume(volume)

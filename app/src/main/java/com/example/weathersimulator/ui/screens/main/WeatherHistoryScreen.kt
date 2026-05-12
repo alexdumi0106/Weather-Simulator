@@ -46,6 +46,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MenuDefaults
+import androidx.compose.foundation.background
+import androidx.compose.ui.unit.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -78,7 +82,6 @@ fun WeatherHistoryScreen(
             state.availableHistoryMonths.filter { it.key.startsWith("$year-") }
         }
     }
-    val selectedMonth = state.availableHistoryMonths.firstOrNull { it.key == state.selectedHistoryMonth }
 
     LaunchedEffect(Unit) {
         if (state.availableHistoryMonths.isEmpty() && !state.isLoading) {
@@ -86,18 +89,11 @@ fun WeatherHistoryScreen(
         }
     }
 
-    LaunchedEffect(state.availableHistoryMonths, state.selectedHistoryMonth) {
-        val currentMonth = selectedMonth ?: state.availableHistoryMonths.firstOrNull()
-        if (currentMonth != null) {
-            selectedYear = currentMonth.key.substring(0, 4)
-            selectedMonthKey = currentMonth.key
-        }
-    }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Weather History", color = Color.White, style = MaterialTheme.typography.headlineSmall) },
+                title = { Text("Istoric meteo", color = Color.White, style = MaterialTheme.typography.headlineSmall) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
@@ -189,7 +185,7 @@ fun WeatherHistoryScreen(
                                     verticalArrangement = Arrangement.spacedBy(6.dp)
                                 ) {
                                     Text(
-                                        text = "Historical Weather",
+                                        text = "Arhivă meteo",
                                         style = MaterialTheme.typography.headlineSmall,
                                         color = Color.White,
                                         fontWeight = FontWeight.Bold
@@ -217,7 +213,7 @@ fun WeatherHistoryScreen(
                                 verticalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
                                 Text(
-                                    text = "Select city",
+                                    text = "Selectează orașul",
                                     style = MaterialTheme.typography.titleMedium,
                                     color = Color(0xFFBEE7FF),
                                     fontWeight = FontWeight.Bold
@@ -253,15 +249,52 @@ fun WeatherHistoryScreen(
 
                                     DropdownMenu(
                                         expanded = cityExpanded,
-                                        onDismissRequest = { cityExpanded = false }
+                                        onDismissRequest = { cityExpanded = false },
+                                        modifier = Modifier
+                                            .background(
+                                                color = Color(0xFF243852),
+                                                shape = RoundedCornerShape(18.dp)
+                                            )
                                     ) {
+
                                         archiveCities.forEach { city ->
+
+                                            val isSelected =
+                                                state.selectedArchiveCity == city.name
+
                                             DropdownMenuItem(
-                                                text = { Text(city.name) },
+                                                modifier = Modifier.background(
+                                                    if (isSelected)
+                                                        Color(0xFF3D6FA6)
+                                                    else
+                                                        Color.Transparent
+                                                ),
+
+                                                text = {
+                                                    Text(
+                                                        text = city.name,
+                                                        color =
+                                                            if (isSelected)
+                                                                Color.White
+                                                            else
+                                                                Color(0xFFBEE7FF),
+
+                                                        fontWeight =
+                                                            if (isSelected)
+                                                                FontWeight.Bold
+                                                            else
+                                                                FontWeight.Medium
+                                                    )
+                                                },
+
                                                 onClick = {
                                                     cityExpanded = false
                                                     onCitySelected(city.name)
-                                                }
+                                                },
+
+                                                colors = MenuDefaults.itemColors(
+                                                    textColor = Color(0xFFBEE7FF)
+                                                )
                                             )
                                         }
                                     }
@@ -295,7 +328,7 @@ fun WeatherHistoryScreen(
                                         ) {
 
                                             Text(
-                                                text = "Data source",
+                                                text = "Sursa datelor",
                                                 style = MaterialTheme.typography.titleMedium,
                                                 color = Color(0xFFBEE7FF),
                                                 fontWeight = FontWeight.Bold
@@ -368,7 +401,7 @@ fun WeatherHistoryScreen(
                                 }
 
                                 Text(
-                                    text = "Select period",
+                                    text = "Selectează perioada",
                                     style = MaterialTheme.typography.titleMedium,
                                     color = Color(0xFFBEE7FF),
                                     fontWeight = FontWeight.Bold
@@ -394,12 +427,12 @@ fun WeatherHistoryScreen(
                                             ) {
                                                 Column(modifier = Modifier.weight(1f)) {
                                                     Text(
-                                                        text = "Year",
+                                                        text = "An",
                                                         style = MaterialTheme.typography.labelMedium,
                                                         color = Color(0xFF86A7CF)
                                                     )
                                                     Text(
-                                                        text = selectedYear ?: "Select year",
+                                                        text = selectedYear ?: "Selectează anul",
                                                         style = MaterialTheme.typography.titleMedium,
                                                         color = Color.White
                                                     )
@@ -414,17 +447,38 @@ fun WeatherHistoryScreen(
 
                                         DropdownMenu(
                                             expanded = yearExpanded,
-                                            onDismissRequest = { yearExpanded = false }
+                                            onDismissRequest = { yearExpanded = false },
+                                            modifier = Modifier
+                                                .background(
+                                                    color = Color(0xFF243852),
+                                                    shape = RoundedCornerShape(18.dp)
+                                                )
                                         ) {
                                             availableYears.forEach { year ->
+
+                                                val isSelected = selectedYear == year
+
                                                 DropdownMenuItem(
-                                                    text = { Text(year) },
+                                                    modifier = Modifier.background(
+                                                        if (isSelected) Color(0xFF3D6FA6)
+                                                        else Color.Transparent
+                                                    ),
+                                                    text = {
+                                                        Text(
+                                                            text = year,
+                                                            color = if (isSelected) Color.White else Color(0xFFBEE7FF),
+                                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                                        )
+                                                    },
                                                     onClick = {
                                                         yearExpanded = false
                                                         selectedYear = year
                                                         selectedMonthKey = null
                                                         isMonthSelectionConfirmed = false
-                                                    }
+                                                    },
+                                                    colors = MenuDefaults.itemColors(
+                                                        textColor = Color(0xFFBEE7FF)
+                                                    )
                                                 )
                                             }
                                         }
@@ -434,7 +488,11 @@ fun WeatherHistoryScreen(
                                         Card(
                                             modifier = Modifier
                                                 .fillMaxWidth()
-                                                .clickable { monthExpanded = true },
+                                                .clickable {
+                                                    if (selectedYear != null) {
+                                                        monthExpanded = true
+                                                    }
+                                                },
                                             colors = CardDefaults.cardColors(containerColor = Color(0xFF243852))
                                         ) {
                                             Row(
@@ -446,7 +504,7 @@ fun WeatherHistoryScreen(
                                             ) {
                                                 Column(modifier = Modifier.weight(1f)) {
                                                     Text(
-                                                        text = "Month",
+                                                        text = "Lună",
                                                         style = MaterialTheme.typography.labelMedium,
                                                         color = Color(0xFF86A7CF)
                                                     )
@@ -455,7 +513,7 @@ fun WeatherHistoryScreen(
                                                             state.availableHistoryMonths
                                                                 .firstOrNull { it.key == key }
                                                                 ?.label
-                                                        } ?: "Select month",
+                                                        } ?: "Selectează luna",
                                                         style = MaterialTheme.typography.titleMedium,
                                                         color = Color.White
                                                     )
@@ -470,17 +528,38 @@ fun WeatherHistoryScreen(
 
                                         DropdownMenu(
                                             expanded = monthExpanded,
-                                            onDismissRequest = { monthExpanded = false }
+                                            onDismissRequest = { monthExpanded = false },
+                                            modifier = Modifier
+                                                .background(
+                                                    color = Color(0xFF243852),
+                                                    shape = RoundedCornerShape(18.dp)
+                                                )
                                         ) {
                                             monthsForSelectedYear.forEach { month ->
+
+                                                val isSelected = selectedMonthKey == month.key
+
                                                 DropdownMenuItem(
-                                                    text = { Text(month.label) },
+                                                    modifier = Modifier.background(
+                                                        if (isSelected) Color(0xFF3D6FA6)
+                                                        else Color.Transparent
+                                                    ),
+                                                    text = {
+                                                        Text(
+                                                            text = month.label,
+                                                            color = if (isSelected) Color.White else Color(0xFFBEE7FF),
+                                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                                        )
+                                                    },
                                                     onClick = {
                                                         monthExpanded = false
                                                         selectedMonthKey = month.key
                                                         onMonthSelected(month.key)
                                                         isMonthSelectionConfirmed = true
-                                                    }
+                                                    },
+                                                    colors = MenuDefaults.itemColors(
+                                                        textColor = Color(0xFFBEE7FF)
+                                                    )
                                                 )
                                             }
                                         }
@@ -522,7 +601,7 @@ fun WeatherHistoryScreen(
 
                                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                             Column(modifier = Modifier.weight(1f)) {
-                                                Text("Max temperature", style = MaterialTheme.typography.labelMedium, color = Color(0xFF86A7CF))
+                                                Text("Temperatura maximă a lunii", style = MaterialTheme.typography.labelMedium, color = Color(0xFF86A7CF))
                                                 Text(summary.maxTemperature, style = MaterialTheme.typography.titleMedium, color = Color.White)
                                                 Text(
                                                     text = summary.maxTemperatureDate,
@@ -531,7 +610,7 @@ fun WeatherHistoryScreen(
                                                 )
                                             }
                                             Column(modifier = Modifier.weight(1f)) {
-                                                Text("Min temperature", style = MaterialTheme.typography.labelMedium, color = Color(0xFF86A7CF))
+                                                Text("Temperatura minimă a lunii", style = MaterialTheme.typography.labelMedium, color = Color(0xFF86A7CF))
                                                 Text(summary.minTemperature, style = MaterialTheme.typography.titleMedium, color = Color.White)
                                                 Text(
                                                     text = summary.minTemperatureDate,
@@ -543,11 +622,11 @@ fun WeatherHistoryScreen(
 
                                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                             Column(modifier = Modifier.weight(1f)) {
-                                                Text("Average humidity", style = MaterialTheme.typography.labelMedium, color = Color(0xFF86A7CF))
+                                                Text("Umiditatea medie", style = MaterialTheme.typography.labelMedium, color = Color(0xFF86A7CF))
                                                 Text(summary.averageHumidity, style = MaterialTheme.typography.titleMedium, color = Color.White)
                                             }
                                             Column(modifier = Modifier.weight(1f)) {
-                                                Text("Average pressure", style = MaterialTheme.typography.labelMedium, color = Color(0xFF86A7CF))
+                                                Text("Presiunea medie", style = MaterialTheme.typography.labelMedium, color = Color(0xFF86A7CF))
                                                 Text(summary.averagePressure, style = MaterialTheme.typography.titleMedium, color = Color.White)
                                             }
                                         }
@@ -561,11 +640,14 @@ fun WeatherHistoryScreen(
                             modifier = Modifier.fillMaxWidth(),
                             enabled = isMonthSelectionConfirmed && state.selectedHistoryMonth != null,
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFF34495E),
-                                contentColor = Color.White
+                                containerColor = Color(0xFF3D6FA6),
+                                disabledContainerColor = Color(0xFF5F6F86),
+
+                                contentColor = Color.White,
+                                disabledContentColor = Color(0xFFEAF4FF)
                             )
                         ) {
-                            Text("Open selected month")
+                            Text("Afișează luna selectată")
                         }
                     }
                 }

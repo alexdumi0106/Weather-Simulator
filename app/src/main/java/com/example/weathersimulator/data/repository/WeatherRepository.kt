@@ -10,6 +10,7 @@ import com.example.weathersimulator.data.remote.weather.HourlyDto
 import com.example.weathersimulator.data.remote.weather.OpenMeteoResponse
 import javax.inject.Inject
 import java.time.YearMonth
+import java.time.LocalDate
 
 class WeatherRepository @Inject constructor(
     private val api: OpenMeteoApi,
@@ -96,14 +97,20 @@ class WeatherRepository @Inject constructor(
         monthKey: String
     ): OpenMeteoResponse {
         val yearMonth = YearMonth.parse(monthKey)
-        val startDate = yearMonth.atDay(1).toString()
-        val endDate = yearMonth.atEndOfMonth().toString()
+
+        val startDate = yearMonth.atDay(1)
+        val yesterday = LocalDate.now().minusDays(1)
+
+        val endDate = minOf(
+            yearMonth.atEndOfMonth(),
+            yesterday
+        )
 
         return api.archive(
             lat = city.latitude,
             lon = city.longitude,
-            startDate = startDate,
-            endDate = endDate
+            startDate = startDate.toString(),
+            endDate = endDate.toString()
         )
     }
 
