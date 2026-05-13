@@ -36,6 +36,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import com.example.weathersimulator.ui.viewmodel.AiViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,6 +50,13 @@ fun SettingsScreen(
 
     val state = viewModel.state.collectAsState().value
     var showLogoutDialog by remember { mutableStateOf(false) }
+
+    val aiViewModel: AiViewModel = hiltViewModel()
+    val aiState by aiViewModel.state.collectAsState()
+
+    var serverUrlInput by remember(aiState.serverUrl) {
+        mutableStateOf(aiState.serverUrl)
+    }
 
     Box(
         modifier = Modifier
@@ -159,6 +170,78 @@ fun SettingsScreen(
                             text = "Deconectare",
                             fontSize = 17.sp,
                             fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(22.dp))
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = Color.White.copy(alpha = 0.12f)
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(18.dp)
+                ) {
+                    Text(
+                        text = "Server AI",
+                        color = Color.White,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    Text(
+                        text = "Introdu IP-ul laptopului pe care rulează backend-ul.",
+                        color = Color.White.copy(alpha = 0.75f),
+                        fontSize = 13.sp
+                    )
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    OutlinedTextField(
+                        value = serverUrlInput,
+                        onValueChange = { serverUrlInput = it },
+                        label = { Text("URL server AI") },
+                        placeholder = { Text("http://172.20.10.2:8000/") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White,
+                            focusedBorderColor = Color(0xFF8EC5FF),
+                            unfocusedBorderColor = Color.White.copy(alpha = 0.35f),
+                            focusedLabelColor = Color(0xFFBEE7FF),
+                            unfocusedLabelColor = Color.White.copy(alpha = 0.65f),
+                            cursorColor = Color(0xFFBEE7FF)
+                        )
+                    )
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    Button(
+                        onClick = {
+                            aiViewModel.onServerUrlChange(serverUrlInput.trim())
+                        },
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF183A5D)
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp)
+                    ) {
+                        Text(
+                            text = "Salvează URL",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color.White
                         )
                     }
                 }

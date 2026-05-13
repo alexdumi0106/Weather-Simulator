@@ -16,7 +16,7 @@ import javax.inject.Inject
 
 private const val PREFS_NAME = "ai_settings"
 private const val KEY_SERVER_URL = "server_url"
-private const val DEFAULT_URL = "http://192.168.100.80:8000/"
+private const val DEFAULT_URL = "http://192.168.0.101:8000/"
 
 @HiltViewModel
 class AiViewModel @Inject constructor(
