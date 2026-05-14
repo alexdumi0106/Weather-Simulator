@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import com.google.firebase.auth.FirebaseAuth
 
 private const val PREFS_NAME = "ai_settings"
 private const val KEY_SERVER_URL = "server_url"
@@ -34,9 +35,17 @@ class AiViewModel @Inject constructor(
 
     private var messagesJob: Job? = null
 
+    private fun currentUserId(): String {
+        return FirebaseAuth.getInstance().currentUser?.uid ?: "guest"
+    }
+
     init {
+        /*viewModelScope.launch {
+            chatRepository.migrateGuestConversations(currentUserId())
+        }*/
+
         viewModelScope.launch {
-            chatRepository.getConversations().collect { list ->
+            chatRepository.getConversations(currentUserId()).collect { list ->
                 val conversations = list.map {
                     AiConversationUi(
                         id = it.id,
@@ -115,8 +124,9 @@ class AiViewModel @Inject constructor(
         viewModelScope.launch {
             val conversationId = _state.value.selectedConversationId
                 ?: chatRepository.createConversation(
-                    title = prompt.take(35)
-                ).also { newId ->
+                        title = prompt.take(35),
+                        userId = currentUserId()
+                    ).also { newId ->
                     selectConversation(newId)
                 }
 
@@ -163,6 +173,23 @@ class AiViewModel @Inject constructor(
 
         viewModelScope.launch {
             chatRepository.clearConversation(conversationId)
+        }
+    }
+
+    fun deleteConversation(conversationId: Long) {
+        viewModelScope.launch {
+            chatRepository.deleteConversation(conversationId)
+
+            if (_state.value.selectedConversationId == conversationId) {
+                messagesJob?.cancel()
+                _state.update {
+                    it.copy(
+                        selectedConversationId = null,
+                        messages = emptyList(),
+                        error = null
+                    )
+                }
+            }
         }
     }
 }

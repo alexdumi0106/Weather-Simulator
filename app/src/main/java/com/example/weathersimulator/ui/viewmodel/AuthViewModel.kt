@@ -196,12 +196,16 @@ class AuthViewModel @Inject constructor(
     }
 
     fun resetPassword(email: String) {
-        if (email.isBlank()) {
+        if (email.isBlank() || !Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
             _state.value = _state.value.copy(error = "Introduceți un email valid")
             return
         }
 
-        _state.value = _state.value.copy(isLoading = true)
+        _state.value = _state.value.copy(
+            isLoading = true,
+            error = null,
+            success = false
+        )
 
         auth.sendPasswordResetEmail(email)
             .addOnSuccessListener {

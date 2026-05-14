@@ -17,6 +17,7 @@ import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 import com.example.weathersimulator.data.local.ai.AiMessageDao
 import com.example.weathersimulator.data.local.ai.AiConversationDao
+import com.example.weathersimulator.data.local.weather.MIGRATION_3_4
 
 
 @Module
@@ -37,7 +38,7 @@ object AppModule {
             WeatherDatabase::class.java,
             "weather_db"
         )
-        .fallbackToDestructiveMigration()
+        .addMigrations(MIGRATION_3_4)
         .build()
     }
 

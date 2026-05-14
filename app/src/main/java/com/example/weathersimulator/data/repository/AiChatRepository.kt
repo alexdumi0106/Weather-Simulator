@@ -11,21 +11,26 @@ class AiChatRepository @Inject constructor(
     private val messageDao: AiMessageDao,
     private val conversationDao: AiConversationDao
 ) {
-    fun getConversations(): Flow<List<AiConversationEntity>> =
-        conversationDao.getAllConversations()
+    fun getConversations(userId: String): Flow<List<AiConversationEntity>> =
+        conversationDao.getConversationsForUser(userId)
 
     fun getMessages(conversationId: Long): Flow<List<AiMessageEntity>> =
         messageDao.getMessagesForConversation(conversationId)
 
-    suspend fun createConversation(title: String): Long {
+    suspend fun createConversation(title: String, userId: String): Long {
         val now = System.currentTimeMillis()
         return conversationDao.insert(
             AiConversationEntity(
                 title = title,
+                userId = userId,
                 createdAt = now,
                 updatedAt = now
             )
         )
+    }
+
+    suspend fun migrateGuestConversations(userId: String) {
+        conversationDao.migrateGuestConversations(userId)
     }
 
     suspend fun insertMessage(
@@ -50,5 +55,10 @@ class AiChatRepository @Inject constructor(
 
     suspend fun clearConversation(conversationId: Long) {
         messageDao.clearConversation(conversationId)
+    }
+
+    suspend fun deleteConversation(conversationId: Long) {
+        messageDao.clearConversation(conversationId)
+        conversationDao.deleteConversation(conversationId)
     }
 }

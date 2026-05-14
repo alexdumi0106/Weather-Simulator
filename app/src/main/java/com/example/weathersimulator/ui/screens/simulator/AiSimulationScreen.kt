@@ -23,6 +23,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.weathersimulator.ui.viewmodel.AiViewModel
 import com.example.weathersimulator.ui.viewmodel.ChatMessage
 import kotlinx.coroutines.launch
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.foundation.BorderStroke
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,6 +35,9 @@ fun AiSimulationScreen(
 ) {
     val state by vm.state.collectAsState()
     var showEmptyPromptWarning by remember { mutableStateOf(false) }
+    var isDeleteMode by remember { mutableStateOf(false) }
+    var selectedConversationToDelete by remember { mutableStateOf<Long?>(null) }
+    var showDeleteConfirmDialog by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
 
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
@@ -97,7 +103,10 @@ fun AiSimulationScreen(
                         }
 
                         OutlinedButton(
-                            onClick = vm::clearCurrentChat,
+                            onClick = {
+                                isDeleteMode = true
+                                selectedConversationToDelete = null
+                            },
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(18.dp),
                             colors = ButtonDefaults.outlinedButtonColors(
@@ -112,7 +121,7 @@ fun AiSimulationScreen(
                                 )
                             )
                         ) {
-                            Text("Elimină conversațiile")
+                            Text("Selectează conversația de șters")
                         }
 
                         LazyColumn(
@@ -122,14 +131,22 @@ fun AiSimulationScreen(
                             items(state.conversations, key = { it.id }) { conversation ->
                                 NavigationDrawerItem(
                                     label = { Text(conversation.title) },
-                                    selected = conversation.id == state.selectedConversationId,
+                                    selected = if (isDeleteMode) {
+                                        conversation.id == selectedConversationToDelete
+                                    } else {
+                                        conversation.id == state.selectedConversationId
+                                    },
                                     onClick = {
-                                        vm.selectConversation(conversation.id)
-                                        scope.launch { drawerState.close() }
+                                        if (isDeleteMode) {
+                                            selectedConversationToDelete = conversation.id
+                                        } else {
+                                            vm.selectConversation(conversation.id)
+                                            scope.launch { drawerState.close() }
+                                        }
                                     },
                                     modifier = Modifier.padding(horizontal = 4.dp),
                                     colors = NavigationDrawerItemDefaults.colors(
-                                        selectedContainerColor = Color(0xFF2A4C79),
+                                        selectedContainerColor = if (isDeleteMode) Color(0xFF5A2630) else Color(0xFF2A4C79),
                                         unselectedContainerColor = Color.Transparent,
                                         selectedTextColor = Color.White,
                                         unselectedTextColor = Color(0xFFDCEBFA),
@@ -137,6 +154,52 @@ fun AiSimulationScreen(
                                         unselectedIconColor = Color(0xFF9EC5E6)
                                     )
                                 )
+                            }
+                        }
+
+                        if (isDeleteMode) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                OutlinedButton(
+                                    onClick = {
+                                        isDeleteMode = false
+                                        selectedConversationToDelete = null
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(16.dp),
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        contentColor = Color(0xFF9FD3FF)
+                                    ),
+                                    border = BorderStroke(
+                                        1.dp,
+                                        Color(0xFF5FA8FF)
+                                    )
+                                ) {
+                                    Icon(Icons.Default.Close, contentDescription = null)
+                                    Spacer(Modifier.width(6.dp))
+                                    Text("Anulează")
+                                }
+
+                                Button(
+                                    onClick = {
+                                        if (selectedConversationToDelete != null) {
+                                            showDeleteConfirmDialog = true
+                                        }
+                                    },
+                                    enabled = selectedConversationToDelete != null,
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(16.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = Color(0xFF8A2D3B),
+                                        contentColor = Color.White
+                                    )
+                                ) {
+                                    Icon(Icons.Default.Delete, contentDescription = null)
+                                    Spacer(Modifier.width(6.dp))
+                                    Text("Șterge")
+                                }
                             }
                         }
                     }
@@ -418,6 +481,38 @@ fun AiSimulationScreen(
                         confirmButton = {
                             TextButton(onClick = { showEmptyPromptWarning = false }) {
                                 Text("OK")
+                            }
+                        }
+                    )
+                }
+
+                if (showDeleteConfirmDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showDeleteConfirmDialog = false },
+                        containerColor = Color(0xFF182A45),
+                        titleContentColor = Color.White,
+                        textContentColor = Color(0xFFDBF0FF),
+                        title = { Text("Ștergi conversația?") },
+                        text = { Text("Această conversație va fi eliminată definitiv.") },
+                        confirmButton = {
+                            TextButton(
+                                onClick = {
+                                    selectedConversationToDelete?.let { id ->
+                                        vm.deleteConversation(id)
+                                    }
+                                    showDeleteConfirmDialog = false
+                                    isDeleteMode = false
+                                    selectedConversationToDelete = null
+                                }
+                            ) {
+                                Text("Șterge", color = Color(0xFFFFB4B4))
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(
+                                onClick = { showDeleteConfirmDialog = false }
+                            ) {
+                                Text("Anulează")
                             }
                         }
                     )

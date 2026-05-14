@@ -40,6 +40,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import com.example.weathersimulator.ui.viewmodel.AiViewModel
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -57,6 +59,9 @@ fun SettingsScreen(
     var serverUrlInput by remember(aiState.serverUrl) {
         mutableStateOf(aiState.serverUrl)
     }
+
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
 
     Box(
         modifier = Modifier
@@ -228,6 +233,8 @@ fun SettingsScreen(
                     Button(
                         onClick = {
                             aiViewModel.onServerUrlChange(serverUrlInput.trim())
+                            focusManager.clearFocus()
+                            keyboardController?.hide()
                         },
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(
