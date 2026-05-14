@@ -28,7 +28,7 @@ object WeatherIconRules {
                 return if (hasSomeClearSky) {
                     WeatherVisual(
                         iconRes = if (isDay) R.drawable.icon_weather_16 else R.drawable.icon_weather_42,
-                        label = "Furtună cu soare"
+                        label = if (isDay) "Furtună cu soare" else "Furtună"
                     )
                 } else {
                     WeatherVisual(
@@ -41,7 +41,7 @@ object WeatherIconRules {
             996 -> {
                 // Averse / risc de furtună (score >= 6)
                 return WeatherVisual(
-                    iconRes = R.drawable.icon_weather_14,
+                    iconRes = if (isDay) R.drawable.icon_weather_16 else R.drawable.icon_weather_42,
                     label = "Averse / risc de furtună"
                 )
             }

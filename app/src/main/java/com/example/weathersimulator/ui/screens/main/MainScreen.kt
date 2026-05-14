@@ -183,7 +183,7 @@ fun WeatherHomeSection(
         }
 
         Text(
-            text = "Temperatura resimtita: ${current.apparentTemperature?.roundToInt() ?: "--"}°",
+            text = "Temperatura resimțită: ${current.apparentTemperature?.roundToInt() ?: "--"}°",
             color = Color.White.copy(alpha = 0.86f),
             style = MaterialTheme.typography.titleMedium
         )

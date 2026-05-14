@@ -432,7 +432,11 @@ class WeatherViewModel @Inject constructor(
             HourlyForecastItemUi(
                 time = formatHour(hourly.time[index]),
                 temperature = "${hourly.temperature[index].roundToInt()}°",
-                weatherCode = hourly.weatherCode[index],
+                weatherCode = calculateStormWeatherCode(
+                    currentIndex = index,
+                    hourly = hourly,
+                    originalWeatherCode = hourly.weatherCode[index]
+                ),
                 isDay = hourly.isDay[index] == 1,
                 cloudCover = hourly.cloudCover[index]
             )
@@ -732,7 +736,7 @@ class WeatherViewModel @Inject constructor(
                 dayLabel = formatDayLabel(dateKey, index),
                 maxTemperature = "${maxTemps[index].roundToInt()}°",
                 minTemperature = "${minTemps[index].roundToInt()}°",
-                weatherCode = weatherCodes[index],
+                weatherCode = dayNightStats?.dayWeatherCode ?: weatherCodes[index],
                 cloudCover = dailyCloudCover,
                 isDay = true,
                 dayWeatherCode = dayNightStats?.dayWeatherCode ?: weatherCodes[index],
@@ -898,6 +902,17 @@ class WeatherViewModel @Inject constructor(
 
     private fun List<Int>.withRainPriorityOr(default: Int): Int {
         if (isEmpty()) return default
+
+        val stormCodes = setOf(996, 997, 998)
+        val detectedStorms = filter { it in stormCodes }
+
+        if (detectedStorms.isNotEmpty()) {
+            return when {
+                detectedStorms.contains(998) -> 998
+                detectedStorms.contains(997) -> 997
+                else -> 996
+            }
+        }
         
         val snowCodes = setOf(71, 73, 75, 77, 85, 86)
         val rainCodes = setOf(51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82, 95, 96, 99)
@@ -953,72 +968,39 @@ class WeatherViewModel @Inject constructor(
         val temperature = hourly.temperature.getOrNull(currentIndex) ?: 0.0
         val pressure = hourly.pressure.getOrNull(currentIndex) ?: 1013.0
 
-        // Presiune din ultimele 3 ore (3 indecși în urmă)
         val pressure3HoursAgo = hourly.pressure.getOrNull(currentIndex - 3) ?: pressure
         val pressureDrop3h = pressure - pressure3HoursAgo
 
-        // Semnale
-        val hasRainSignal = precipitation >= 1.0 || rain >= 1.0
-        val hasCloudSignal = cloudCover >= 70
-        val hasWindSignal = windGusts >= 35
+        val hasRain = rain >= 0.8 || precipitation >= 1.0
+        val hasHeavyRain = rain >= 3.0 || precipitation >= 4.0
+        val hasVeryHeavyRain = rain >= 5.0 || precipitation >= 6.0
 
-        // Storm score
-        var stormScore = 0
+        val isSevereStorm =
+            cloudCover >= 95 &&
+            humidity >= 85 &&
+            pressure <= 1005 &&
+            hasVeryHeavyRain &&
+            windGusts >= 50
 
-        // Ploaie / precipitații
-        stormScore += when {
-            precipitation >= 5.0 || rain >= 5.0 -> 4
-            precipitation >= 2.0 || rain >= 2.0 -> 3
-            precipitation >= 1.0 || rain >= 1.0 -> 2
-            precipitation >= 0.3 || rain >= 0.3 -> 1
-            else -> 0
-        }
+        val isStorm =
+            cloudCover >= 85 &&
+            humidity >= 75 &&
+            pressure <= 1008 &&
+            hasRain &&
+            (windGusts >= 35 || pressureDrop3h <= -3.0 || hasHeavyRain)
 
-        // Rafale
-        stormScore += when {
-            windGusts >= 55 -> 4
-            windGusts >= 45 -> 3
-            windGusts >= 35 -> 2
-            windGusts >= 25 -> 1
-            else -> 0
-        }
-
-        // Scădere presiune în ultimele 3 ore
-        stormScore += when {
-            pressureDrop3h <= -6 -> 4
-            pressureDrop3h <= -4 -> 3
-            pressureDrop3h <= -2.5 -> 2
-            pressureDrop3h <= -1.5 -> 1
-            else -> 0
-        }
-
-        // Umiditate
-        stormScore += when {
-            humidity >= 90 -> 2
-            humidity >= 80 -> 1
-            else -> 0
-        }
-
-        // Nori
-        stormScore += when {
-            cloudCover >= 90 -> 2
-            cloudCover >= 75 -> 1
-            else -> 0
-        }
-
-        // Temperatură
-        stormScore += when {
-            temperature >= 24 -> 1
-            else -> 0
-        }
-
-        // Decizia finală
-        val isStormLikely = hasRainSignal && hasCloudSignal && (hasWindSignal || pressureDrop3h <= -3.0 || stormScore >= 8)
+        val isSunStorm =
+            cloudCover in 45..84 &&
+            humidity >= 70 &&
+            pressure <= 1010 &&
+            hasRain &&
+            windGusts >= 30 &&
+            temperature >= 18
 
         return when {
-            stormScore >= 11 && isStormLikely -> 998  // Furtună puternică
-            stormScore >= 8 && isStormLikely -> 997   // Furtună normală
-            stormScore >= 6 && hasRainSignal && hasCloudSignal -> 996  // Averse / risc
+            isSevereStorm -> 998   // furtună puternică
+            isStorm -> 997         // furtună
+            isSunStorm -> 996      // furtună cu soare
             else -> originalWeatherCode
         }
     }

@@ -50,6 +50,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MenuDefaults
 import androidx.compose.foundation.background
 import androidx.compose.ui.unit.dp
+import androidx.compose.runtime.saveable.rememberSaveable
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -65,9 +66,9 @@ fun WeatherHistoryScreen(
 ) {
     var yearExpanded by remember { mutableStateOf(false) }
     var monthExpanded by remember { mutableStateOf(false) }
-    var selectedYear by remember { mutableStateOf<String?>(null) }
-    var selectedMonthKey by remember { mutableStateOf<String?>(null) }
-    var isMonthSelectionConfirmed by remember { mutableStateOf(state.selectedHistoryMonth != null) }
+    var selectedYear by rememberSaveable { mutableStateOf<String?>(state.selectedHistoryMonth?.substring(0, 4)) }
+    var selectedMonthKey by rememberSaveable { mutableStateOf<String?>(state.selectedHistoryMonth) }
+    var isMonthSelectionConfirmed by rememberSaveable { mutableStateOf(state.selectedHistoryMonth != null) }
     var cityExpanded by remember { mutableStateOf(false) }
     val scrollState = rememberScrollState()
     val availableYears = remember(state.availableHistoryMonths) {
@@ -86,6 +87,16 @@ fun WeatherHistoryScreen(
     LaunchedEffect(Unit) {
         if (state.availableHistoryMonths.isEmpty() && !state.isLoading) {
             onLoadHistory()
+        }
+    }
+
+    LaunchedEffect(state.selectedHistoryMonth) {
+        val selectedKey = state.selectedHistoryMonth
+
+        if (selectedKey != null) {
+            selectedYear = selectedKey.substring(0, 4)
+            selectedMonthKey = selectedKey
+            isMonthSelectionConfirmed = true
         }
     }
 
@@ -289,6 +300,9 @@ fun WeatherHistoryScreen(
 
                                                 onClick = {
                                                     cityExpanded = false
+                                                    selectedYear = null
+                                                    selectedMonthKey = null
+                                                    isMonthSelectionConfirmed = false
                                                     onCitySelected(city.name)
                                                 },
 
@@ -340,7 +354,12 @@ fun WeatherHistoryScreen(
 
                                                 FilterChip(
                                                     selected = state.selectedArchiveSource == "CSV",
-                                                    onClick = { onSourceSelected("CSV") },
+                                                    onClick = {
+                                                        selectedYear = null
+                                                        selectedMonthKey = null
+                                                        isMonthSelectionConfirmed = false
+                                                        onSourceSelected("CSV")
+                                                    },
                                                     label = {
                                                         Text(
                                                             text = "CSV local",
@@ -369,7 +388,12 @@ fun WeatherHistoryScreen(
 
                                                 FilterChip(
                                                     selected = state.selectedArchiveSource == "API",
-                                                    onClick = { onSourceSelected("API") },
+                                                    onClick = {
+                                                        selectedYear = null
+                                                        selectedMonthKey = null
+                                                        isMonthSelectionConfirmed = false
+                                                        onSourceSelected("API")
+                                                    },
                                                     label = {
                                                         Text(
                                                             text = "API meteo",
