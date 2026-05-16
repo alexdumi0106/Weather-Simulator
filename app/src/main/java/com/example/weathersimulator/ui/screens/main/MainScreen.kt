@@ -77,10 +77,31 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.material3.IconButton
+import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.filled.MyLocation
+import androidx.compose.material.icons.rounded.Star
+import androidx.compose.material.icons.rounded.Delete
+import com.example.weathersimulator.data.remote.city.CityResultDto
+import com.example.weathersimulator.data.local.city.FavoriteCityEntity
+import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material3.IconButton
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 
 @Composable
 fun WeatherHomeSection(
     locationName: String,
+    showSearchCard: Boolean,
+    onToggleSearch: () -> Unit,
+    weatherState: WeatherUiState,
+    weatherVm: WeatherViewModel,
     isLoading: Boolean,
     error: String?,
     data: OpenMeteoResponse?,
@@ -89,7 +110,7 @@ fun WeatherHomeSection(
     latitude: Double = 0.0,
     longitude: Double = 0.0
 ) {
-    val cityName = locationName.substringBefore(",").ifBlank { "Locatia ta" }
+    val cityName = locationName.substringBefore(",").ifBlank { "Locația ta" }
 
     
 
@@ -142,16 +163,60 @@ fun WeatherHomeSection(
         verticalArrangement = Arrangement.spacedBy(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(
-            text = cityName,
-            color = Color.White,
-            style = MaterialTheme.typography.headlineLarge.copy(
-                fontWeight = FontWeight.Medium,
-                fontSize = 30.sp
-            ),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = cityName,
+                color = Color.White,
+                style = MaterialTheme.typography.headlineLarge.copy(
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 30.sp
+                ),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+
+            IconButton(onClick = onToggleSearch) {
+                Icon(
+                    imageVector = Icons.Rounded.Search,
+                    contentDescription = "Caută oraș",
+                    tint = Color.White.copy(alpha = 0.9f)
+                )
+            }
+        }
+
+        AnimatedVisibility(
+            visible = showSearchCard,
+            enter = fadeIn() + expandVertically(),
+            exit = fadeOut() + shrinkVertically()
+        ) {
+            CitySearchCard(
+                query = weatherState.citySearchQuery,
+                results = weatherState.citySearchResults,
+                favorites = weatherState.favoriteCities,
+                isSearching = weatherState.isSearchingCity,
+                error = weatherState.citySearchError,
+                isUsingCurrentLocation = weatherState.isUsingCurrentLocation,
+                onQueryChange = weatherVm::updateCitySearchQuery,
+                onSearchClick = weatherVm::searchCity,
+                onCityClick = {
+                    weatherVm.selectCity(it)
+                    onToggleSearch()
+                },
+                onUseCurrentLocationClick = {
+                    weatherVm.useCurrentLocation()
+                    onToggleSearch()
+                },
+                onSaveFavoriteClick = weatherVm::saveSelectedCityToFavorites,
+                onFavoriteClick = {
+                    weatherVm.selectFavoriteCity(it)
+                    onToggleSearch()
+                },
+                onDeleteFavoriteClick = weatherVm::deleteFavoriteCity
+            )
+        }
 
         Text(
             text = "${current.temperature?.roundToInt() ?: "--"}°",
@@ -235,11 +300,18 @@ fun MainScreen(navController: NavController) {
 
     val weatherVm: WeatherViewModel = hiltViewModel(activity)
     val weatherState = weatherVm.state.collectAsState().value
+    var showSearchCard by remember { mutableStateOf(false) }
 
-    LaunchedEffect(s.lat, s.lon, weatherState.isHistoryMode) {
+    LaunchedEffect(s.lat, s.lon, weatherState.isHistoryMode, weatherState.isUsingCurrentLocation) {
         val lat = s.lat
         val lon = s.lon
-        if (!weatherState.isHistoryMode && lat != null && lon != null) {
+
+        if (
+            weatherState.isUsingCurrentLocation &&
+            !weatherState.isHistoryMode &&
+            lat != null &&
+            lon != null
+        ) {
             weatherVm.load(lat, lon)
         }
     }
@@ -296,14 +368,22 @@ fun MainScreen(navController: NavController) {
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 WeatherHomeSection(
-                    locationName = s.placeName ?: "Locatia ta",
+                    locationName = if (weatherState.isUsingCurrentLocation) {
+                        s.placeName ?: "Locatia ta"
+                    } else {
+                        weatherState.selectedCityName
+                    },
+                    showSearchCard = showSearchCard,
+                    onToggleSearch = { showSearchCard = !showSearchCard },
+                    weatherState = weatherState,
+                    weatherVm = weatherVm,
                     isLoading = weatherState.isLoading,
                     error = weatherState.error,
                     data = weatherState.data,
                     hourlyForecast = weatherState.hourlyForecast,
                     dailyForecast = weatherState.dailyForecast,
-                    latitude = s.lat ?: 0.0,
-                    longitude = s.lon ?: 0.0
+                    latitude = weatherState.data?.latitude ?: s.lat ?: 0.0,
+                    longitude = weatherState.data?.longitude ?: s.lon ?: 0.0
                 )
                 Spacer(modifier = Modifier.height(24.dp))
             }
@@ -412,6 +492,211 @@ private fun weatherBackground(code: Int, isDay: Boolean): List<Color> {
             Color(0xFF3D6FA6),
             Color(0xFF5E88BB),
             Color(0xFF86A7CF)
+        )
+    }
+}
+
+@Composable
+fun CitySearchCard(
+    query: String,
+    results: List<CityResultDto>,
+    favorites: List<FavoriteCityEntity>,
+    isSearching: Boolean,
+    error: String?,
+    isUsingCurrentLocation: Boolean,
+    onQueryChange: (String) -> Unit,
+    onSearchClick: () -> Unit,
+    onCityClick: (CityResultDto) -> Unit,
+    onUseCurrentLocationClick: () -> Unit,
+    onSaveFavoriteClick: () -> Unit,
+    onFavoriteClick: (FavoriteCityEntity) -> Unit,
+    onDeleteFavoriteClick: (FavoriteCityEntity) -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(28.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White.copy(alpha = 0.14f)
+        ),
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.22f))
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = "Caută vremea în orice oraș",
+                color = Color.White,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 18.sp
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedTextField(
+                    value = query,
+                    onValueChange = onQueryChange,
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    placeholder = {
+                        Text(
+                            text = "Ex: Timișoara, Paris, Londra",
+                            color = Color.White.copy(alpha = 0.65f)
+                        )
+                    }
+                )
+
+                IconButton(
+                    onClick = onSearchClick
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Search,
+                        contentDescription = "Caută",
+                        tint = Color.White
+                    )
+                }
+            }
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                AssistChip(
+                    onClick = onUseCurrentLocationClick,
+                    label = { Text("Locația mea") },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Filled.MyLocation,
+                            contentDescription = null,
+                            tint = Color.White
+                        )
+                    },
+                    colors = AssistChipDefaults.assistChipColors(
+                        containerColor = if (isUsingCurrentLocation)
+                            Color.White.copy(alpha = 0.28f)
+                        else
+                            Color.White.copy(alpha = 0.12f),
+                        labelColor = Color.White
+                    )
+                )
+
+                if (!isUsingCurrentLocation) {
+                    AssistChip(
+                        onClick = onSaveFavoriteClick,
+                        label = { Text("Salvează favorit") },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Rounded.Star,
+                                contentDescription = null,
+                                tint = Color.White
+                            )
+                        },
+                        colors = AssistChipDefaults.assistChipColors(
+                            containerColor = Color.White.copy(alpha = 0.16f),
+                            labelColor = Color.White
+                        )
+                    )
+                }
+            }
+
+            if (isSearching) {
+                LinearProgressIndicator(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = Color.White,
+                    trackColor = Color.White.copy(alpha = 0.18f)
+                )
+            }
+
+            if (error != null) {
+                Text(
+                    text = error,
+                    color = Color.White.copy(alpha = 0.9f),
+                    fontSize = 13.sp
+                )
+            }
+
+            results.forEach { city ->
+                CityResultRow(
+                    title = city.displayName(),
+                    subtitle = "${city.latitude}, ${city.longitude}",
+                    onClick = { onCityClick(city) }
+                )
+            }
+
+            if (favorites.isNotEmpty()) {
+                Text(
+                    text = "Orașe favorite",
+                    color = Color.White.copy(alpha = 0.85f),
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 14.sp
+                )
+
+                favorites.forEach { city ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(18.dp))
+                            .clickable { onFavoriteClick(city) }
+                            .background(Color.White.copy(alpha = 0.10f))
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = city.displayName,
+                                color = Color.White,
+                                fontWeight = FontWeight.Medium
+                            )
+
+                            Text(
+                                text = "Salvat în favorite",
+                                color = Color.White.copy(alpha = 0.65f),
+                                fontSize = 12.sp
+                            )
+                        }
+
+                        IconButton(
+                            onClick = { onDeleteFavoriteClick(city) }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Delete,
+                                contentDescription = "Șterge favorit",
+                                tint = Color.White.copy(alpha = 0.8f)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun CityResultRow(
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .clickable { onClick() }
+            .background(Color.White.copy(alpha = 0.10f))
+            .padding(horizontal = 12.dp, vertical = 10.dp)
+    ) {
+        Text(
+            text = title,
+            color = Color.White,
+            fontWeight = FontWeight.Medium
+        )
+
+        Text(
+            text = subtitle,
+            color = Color.White.copy(alpha = 0.65f),
+            fontSize = 12.sp
         )
     }
 }

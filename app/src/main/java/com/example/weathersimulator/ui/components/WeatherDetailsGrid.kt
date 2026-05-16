@@ -44,10 +44,16 @@ fun WeatherDetailsGrid(
 
     // Calculate sunrise and sunset for local timezone and current date.
     val calendar = Calendar.getInstance()
-    val sunTimes = calculateSunriseSunsetLocal(latitude, longitude, calendar)
 
-    val sunriseStr = sunTimes.first?.let { minutesToClock(it) } ?: "--:--"
-    val sunsetStr = sunTimes.second?.let { minutesToClock(it) } ?: "--:--"
+    val sunriseStr = data.daily?.sunrise
+        ?.firstOrNull()
+        ?.let { formatApiSolarTime(it) }
+        ?: "--:--"
+
+    val sunsetStr = data.daily?.sunset
+        ?.firstOrNull()
+        ?.let { formatApiSolarTime(it) }
+        ?: "--:--"
 
     val moonPhase = calculateMoonPhase(calendar)
 
@@ -353,4 +359,8 @@ private fun calculateSunriseSunsetLocal(latitude: Double, longitude: Double, cal
     val sunset = calculateSunEventMinutes(dayOfYear, latitude, longitude, utcOffsetHours, isSunrise = false)
 
     return Pair(sunrise, sunset)
+}
+
+private fun formatApiSolarTime(value: String): String {
+    return value.substringAfter("T").take(5)
 }

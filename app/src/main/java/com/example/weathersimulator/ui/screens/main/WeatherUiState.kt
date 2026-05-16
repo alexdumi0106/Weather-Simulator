@@ -1,6 +1,8 @@
 package com.example.weathersimulator.ui.screens.main
 
 import com.example.weathersimulator.data.remote.weather.OpenMeteoResponse
+import com.example.weathersimulator.data.remote.city.CityResultDto
+import com.example.weathersimulator.data.local.city.FavoriteCityEntity
 
 data class WeatherUiState(
     val isLoading: Boolean = false,
@@ -8,6 +10,16 @@ data class WeatherUiState(
     val hourlyForecast: List<HourlyForecastItemUi> = emptyList(),
     val dailyForecast: List<DailyForecastItemUi> = emptyList(),
     val error: String? = null,
+
+    val selectedCityName: String = "Locația ta",
+    val isUsingCurrentLocation: Boolean = true,
+
+    val citySearchQuery: String = "",
+    val citySearchResults: List<CityResultDto> = emptyList(),
+    val isSearchingCity: Boolean = false,
+    val citySearchError: String? = null,
+
+    val favoriteCities: List<FavoriteCityEntity> = emptyList(),
 
     // History mode
     val isHistoryMode: Boolean = false,

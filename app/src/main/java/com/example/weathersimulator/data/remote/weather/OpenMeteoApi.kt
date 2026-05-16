@@ -20,7 +20,7 @@ interface OpenMeteoApi {
 
         // Daily forecast
         @Query("daily") daily: String =
-            "weather_code,temperature_2m_max,temperature_2m_min",
+            "weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset",
 
         @Query("forecast_days") forecastDays: Int = 10,
 
@@ -41,6 +41,6 @@ interface OpenMeteoApi {
         @Query("daily") daily: String =
             "weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset",
 
-        @Query("timezone") timezone: String = "Europe/Bucharest"
+        @Query("timezone") timezone: String = "auto"
     ): OpenMeteoResponse
 }

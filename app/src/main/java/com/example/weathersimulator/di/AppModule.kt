@@ -18,6 +18,8 @@ import javax.inject.Singleton
 import com.example.weathersimulator.data.local.ai.AiMessageDao
 import com.example.weathersimulator.data.local.ai.AiConversationDao
 import com.example.weathersimulator.data.local.weather.MIGRATION_3_4
+import com.example.weathersimulator.data.local.city.FavoriteCityDao
+import com.example.weathersimulator.data.local.weather.MIGRATION_4_5
 
 
 @Module
@@ -38,7 +40,7 @@ object AppModule {
             WeatherDatabase::class.java,
             "weather_db"
         )
-        .addMigrations(MIGRATION_3_4)
+        .addMigrations(MIGRATION_3_4, MIGRATION_4_5)
         .build()
     }
 
@@ -76,5 +78,10 @@ object AppModule {
     @Provides
     fun provideAiConversationDao(db: WeatherDatabase): AiConversationDao {
         return db.aiConversationDao()
+    }
+
+    @Provides
+    fun provideFavoriteCityDao(db: WeatherDatabase): FavoriteCityDao {
+        return db.favoriteCityDao()
     }
 }

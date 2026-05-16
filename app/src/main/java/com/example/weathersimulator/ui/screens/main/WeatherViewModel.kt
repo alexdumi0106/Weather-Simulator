@@ -23,10 +23,17 @@ import android.util.Log
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import java.time.LocalDate
+import com.example.weathersimulator.data.remote.city.CityResultDto
+import com.example.weathersimulator.data.local.city.FavoriteCityEntity
+import com.example.weathersimulator.data.repository.CitySearchRepository
+import com.example.weathersimulator.data.repository.FavoriteCityRepository
+import java.time.ZonedDateTime
 
 @HiltViewModel
 class WeatherViewModel @Inject constructor(
-    private val weatherRepository: WeatherRepository
+    private val weatherRepository: WeatherRepository,
+    private val citySearchRepository: CitySearchRepository,
+    private val favoriteCityRepository: FavoriteCityRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(WeatherUiState())
@@ -45,6 +52,9 @@ class WeatherViewModel @Inject constructor(
     private val minRefreshIntervalMs = 60_000L
     private val minLocationDelta = 0.01
 
+    init {
+        observeFavorites()
+    }
 
     fun load(lat: Double, lon: Double) {
         if (_state.value.isHistoryMode) return
@@ -81,6 +91,10 @@ class WeatherViewModel @Inject constructor(
 
             try {
                 val response = weatherRepository.getForecast(lat, lon)
+                lastFetchAtMs = System.currentTimeMillis()
+                lastFetchLat = lat
+                lastFetchLon = lon
+                cachedResponse = response
                 Log.d("WeatherDebug", "HOURLY RESPONSE = ${response.hourly}")
                 Log.d("WeatherDebug", "HOURLY TIMES = ${response.hourly?.time}")
                 Log.d("WeatherDebug", "HOURLY TEMPS = ${response.hourly?.temperature}")
@@ -89,7 +103,7 @@ class WeatherViewModel @Inject constructor(
             } catch (e: Exception) {
                 val friendlyMessage = when {
                     e.message?.contains("timeout", ignoreCase = true) == true ->
-                        "Conexiunea cu serverul meteo a expirat. Reincerc automat cand se actualizeaza locatia."
+                        "Conexiunea cu serverul meteo a expirat. Reîncerc automat când se actualizează locația."
                     else -> e.message ?: "Failed to load weather"
                 }
                 _state.update {
@@ -691,8 +705,17 @@ class WeatherViewModel @Inject constructor(
 
         if (maxAvailable == 0) return emptyList()
 
-        val currentHour = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:00", java.util.Locale.getDefault())
-            .format(java.util.Date())
+        val zoneId = try {
+            ZoneId.of(response.timezone ?: "Europe/Bucharest")
+        } catch (e: Exception) {
+            ZoneId.systemDefault()
+        }
+
+        val currentHour = ZonedDateTime.now(zoneId)
+            .withMinute(0)
+            .withSecond(0)
+            .withNano(0)
+            .format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm"))
 
         val startIndex = times.indexOfFirst { it == currentHour }.let { index ->
             if (index >= 0) index else 0
@@ -1002,6 +1025,171 @@ class WeatherViewModel @Inject constructor(
             isStorm -> 997         // furtună
             isSunStorm -> 996      // furtună cu soare
             else -> originalWeatherCode
+        }
+    }
+
+    private fun observeFavorites() {
+        viewModelScope.launch {
+            favoriteCityRepository.observeFavorites().collect { favorites ->
+                _state.update {
+                    it.copy(favoriteCities = favorites)
+                }
+            }
+        }
+    }
+
+    private fun loadLastSelectedCity() {
+        viewModelScope.launch {
+            val lastCity = favoriteCityRepository.getLastSelectedCity()
+
+            if (lastCity != null) {
+                _state.update {
+                    it.copy(
+                        selectedCityName = lastCity.displayName,
+                        isUsingCurrentLocation = false
+                    )
+                }
+
+                load(lastCity.latitude, lastCity.longitude)
+            }
+        }
+    }
+
+    fun updateCitySearchQuery(query: String) {
+        _state.update {
+            it.copy(
+                citySearchQuery = query,
+                citySearchError = null
+            )
+        }
+    }
+
+    fun searchCity() {
+        val query = _state.value.citySearchQuery.trim()
+        if (query.length < 2) {
+            _state.update {
+                it.copy(citySearchError = "Introdu cel puțin 2 caractere.")
+            }
+            return
+        }
+
+        viewModelScope.launch {
+            _state.update {
+                it.copy(
+                    isSearchingCity = true,
+                    citySearchError = null
+                )
+            }
+
+            try {
+                val results = citySearchRepository.searchCity(query)
+
+                _state.update {
+                    it.copy(
+                        citySearchResults = results,
+                        isSearchingCity = false,
+                        citySearchError = if (results.isEmpty()) "Nu am găsit orașul căutat." else null
+                    )
+                }
+            } catch (e: Exception) {
+                _state.update {
+                    it.copy(
+                        isSearchingCity = false,
+                        citySearchError = "Nu am putut căuta orașul. Verifică internetul."
+                    )
+                }
+            }
+        }
+    }
+
+    fun selectCity(city: CityResultDto) {
+        val displayName = city.displayName()
+
+        _state.update {
+            it.copy(
+                selectedCityName = displayName,
+                isUsingCurrentLocation = false,
+                citySearchResults = emptyList(),
+                citySearchQuery = displayName,
+                citySearchError = null
+            )
+        }
+
+        viewModelScope.launch {
+            favoriteCityRepository.saveLastSelected(
+                FavoriteCityEntity(
+                    id = "last_selected_city",
+                    name = city.name,
+                    displayName = displayName,
+                    latitude = city.latitude,
+                    longitude = city.longitude,
+                    country = city.country,
+                    timezone = city.timezone,
+                    isLastSelected = true
+                )
+            )
+        }
+
+        load(city.latitude, city.longitude)
+    }
+
+    fun useCurrentLocation() {
+        _state.update {
+            it.copy(
+                selectedCityName = "Locația ta",
+                isUsingCurrentLocation = true,
+                citySearchQuery = "",
+                citySearchResults = emptyList(),
+                citySearchError = null
+            )
+        }
+
+        lastFetchAtMs = 0L
+        lastFetchLat = null
+        lastFetchLon = null
+    }
+
+    fun saveSelectedCityToFavorites() {
+        val state = _state.value
+        val data = state.data ?: return
+        val currentLat = lastFetchLat ?: return
+        val currentLon = lastFetchLon ?: return
+
+        viewModelScope.launch {
+            favoriteCityRepository.saveFavorite(
+                FavoriteCityEntity(
+                    id = "${state.selectedCityName}_${currentLat}_${currentLon}",
+                    name = state.selectedCityName.substringBefore(","),
+                    displayName = state.selectedCityName,
+                    latitude = currentLat,
+                    longitude = currentLon,
+                    country = null,
+                    timezone = data.timezone
+                )
+            )
+        }
+    }
+
+    fun selectFavoriteCity(city: FavoriteCityEntity) {
+        _state.update {
+            it.copy(
+                selectedCityName = city.displayName,
+                isUsingCurrentLocation = false,
+                citySearchQuery = city.displayName,
+                citySearchResults = emptyList()
+            )
+        }
+
+        viewModelScope.launch {
+            favoriteCityRepository.saveLastSelected(city)
+        }
+
+        load(city.latitude, city.longitude)
+    }
+
+    fun deleteFavoriteCity(city: FavoriteCityEntity) {
+        viewModelScope.launch {
+            favoriteCityRepository.deleteFavorite(city.id)
         }
     }
 }
