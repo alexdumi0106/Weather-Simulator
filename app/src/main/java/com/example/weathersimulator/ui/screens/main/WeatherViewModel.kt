@@ -28,9 +28,13 @@ import com.example.weathersimulator.data.local.city.FavoriteCityEntity
 import com.example.weathersimulator.data.repository.CitySearchRepository
 import com.example.weathersimulator.data.repository.FavoriteCityRepository
 import java.time.ZonedDateTime
+import com.example.weathersimulator.domain.weather.WeatherAlertEvaluator
+import com.example.weathersimulator.notifications.WeatherNotifier
+import android.app.Application
 
 @HiltViewModel
 class WeatherViewModel @Inject constructor(
+    private val application: Application,
     private val weatherRepository: WeatherRepository,
     private val citySearchRepository: CitySearchRepository,
     private val favoriteCityRepository: FavoriteCityRepository
@@ -41,6 +45,9 @@ class WeatherViewModel @Inject constructor(
     val archiveCities = weatherRepository.archiveCities
 
     private var lastFetchAtMs: Long = 0L
+    private var lastAlertTitle: String? = null
+    private var lastAlertSentAtMs: Long = 0L
+    private val alertCooldownMs = 3 * 60 * 60 * 1000L // 3 ore
     private var lastFetchLat: Double? = null
     private var lastFetchLon: Double? = null
     private var cachedResponse: com.example.weathersimulator.data.remote.weather.OpenMeteoResponse? = null
@@ -308,6 +315,26 @@ class WeatherViewModel @Inject constructor(
         lastFetchLat = response.latitude
         lastFetchLon = response.longitude
         cachedResponse = response
+
+        val alert = WeatherAlertEvaluator.evaluate(response)
+
+        if (alert != null) {
+            val now = System.currentTimeMillis()
+
+            val isNewAlert = alert.title != lastAlertTitle
+            val cooldownPassed = now - lastAlertSentAtMs >= alertCooldownMs
+
+            if (isNewAlert || cooldownPassed) {
+                WeatherNotifier.show(
+                    application.applicationContext,
+                    alert.title,
+                    alert.message
+                )
+
+                lastAlertTitle = alert.title
+                lastAlertSentAtMs = now
+            }
+        }
 
         _state.update {
             it.copy(

@@ -7,7 +7,6 @@ import androidx.navigation.compose.rememberNavController
 import com.example.weathersimulator.ui.screens.auth.LoginScreen
 import com.example.weathersimulator.ui.screens.auth.RegisterScreen
 import com.example.weathersimulator.ui.screens.auth.ResetPasswordScreen
-import com.example.weathersimulator.ui.screens.auth.ProfileScreen
 import com.example.weathersimulator.ui.screens.main.MainScreen
 import com.example.weathersimulator.ui.screens.WeatherSimulatorTheme
 import com.example.weathersimulator.ui.screens.settings.SettingsScreen
@@ -114,19 +113,6 @@ fun AppNavigation() {
         composable(Routes.SETTINGS) {
             WeatherSimulatorTheme(darkTheme = false, dynamicColor = false) {
                 SettingsScreen(navController)
-            }
-        }
-
-        composable(Routes.PROFILE) {
-            WeatherSimulatorTheme(darkTheme = false, dynamicColor = false) {
-                ProfileScreen(
-                    onBack = { navController.popBackStack() },
-                    onLogout = {
-                        navController.navigate(Routes.LOGIN) {
-                            popUpTo(Routes.MAIN) { inclusive = true }
-                        }
-                    }
-                )
             }
         }
 

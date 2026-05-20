@@ -18,8 +18,11 @@ object WeatherAlertEvaluator {
         val codes = h.weatherCode.take(n)
 
         val storm = codes.any { code -> code in listOf(95, 96, 99) }
-        val rainSoon = precipMax >= 0.2
+        val rainSoon = precipMax >= 4.0
         val windy = windMax >= 45.0
+
+        val snowCodes = listOf(71, 73, 75, 77, 85, 86)
+        val snowSoon = codes.any { it in snowCodes }
 
         return when {
             storm -> WeatherAlert(
@@ -33,6 +36,10 @@ object WeatherAlertEvaluator {
             windy -> WeatherAlert(
                 "Vânt puternic",
                 "Vântul poate deveni puternic în următoarele ore."
+            )
+            snowSoon -> WeatherAlert(
+                "Ninsoare posibilă",
+                "În următoarele ore poate ninge."
             )
             else -> null
         }
