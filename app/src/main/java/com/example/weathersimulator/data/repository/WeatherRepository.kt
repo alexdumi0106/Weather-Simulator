@@ -139,6 +139,80 @@ class WeatherRepository @Inject constructor(
         return response
     }
 
+    private suspend fun getRecentPastForecastForRange(
+        city: ArchiveCity,
+        startDate: LocalDate,
+        endDate: LocalDate
+    ): OpenMeteoResponse {
+        val today = LocalDate.now()
+
+        val pastDays = java.time.temporal.ChronoUnit.DAYS
+            .between(startDate, today)
+            .toInt()
+            .coerceIn(1, 92)
+
+        val response = api.recentPastForecast(
+            lat = city.latitude,
+            lon = city.longitude,
+            pastDays = pastDays,
+            timezone = city.timezone
+        )
+
+        return filterHistoricalResponseByDateRange(
+            response = response,
+            startDate = startDate,
+            endDate = endDate
+        )
+    }
+
+    private fun filterHistoricalResponseByDateRange(
+        response: OpenMeteoResponse,
+        startDate: LocalDate,
+        endDate: LocalDate
+    ): OpenMeteoResponse {
+        val hourly = response.hourly
+        val daily = response.daily
+
+        val hourlyIndexes = hourly?.time
+            ?.mapIndexedNotNull { index, time ->
+                val date = LocalDate.parse(time.take(10))
+                if (date in startDate..endDate) index else null
+            }
+            ?: emptyList()
+
+        val dailyIndexes = daily?.time
+            ?.mapIndexedNotNull { index, time ->
+                val date = LocalDate.parse(time.take(10))
+                if (date in startDate..endDate) index else null
+            }
+            ?: emptyList()
+
+        return response.copy(
+            hourly = hourly?.copy(
+                time = hourlyIndexes.map { hourly.time[it] },
+                temperature = hourlyIndexes.map { hourly.temperature[it] },
+                precipitation = hourlyIndexes.map { hourly.precipitation.getOrElse(it) { 0.0 } },
+                rain = hourlyIndexes.map { hourly.rain.getOrElse(it) { 0.0 } },
+                snowfall = hourlyIndexes.map { hourly.snowfall.getOrElse(it) { 0.0 } },
+                weatherCode = hourlyIndexes.map { hourly.weatherCode[it] },
+                cloudCover = hourlyIndexes.map { hourly.cloudCover[it] },
+                windSpeed = hourlyIndexes.map { hourly.windSpeed.getOrElse(it) { 0.0 } },
+                windGusts = hourlyIndexes.map { hourly.windGusts.getOrElse(it) { 0.0 } },
+                humidity = hourlyIndexes.map { hourly.humidity[it] },
+                pressure = hourlyIndexes.map { hourly.pressure[it] },
+                isDay = hourlyIndexes.map { hourly.isDay[it] }
+            ),
+            daily = daily?.copy(
+                time = dailyIndexes.map { daily.time[it] },
+                weatherCode = dailyIndexes.map { daily.weatherCode[it] },
+                tempMax = dailyIndexes.map { daily.tempMax[it] },
+                tempMin = dailyIndexes.map { daily.tempMin[it] },
+                sunrise = dailyIndexes.map { daily.sunrise[it] },
+                sunset = dailyIndexes.map { daily.sunset[it] }
+            )
+        )
+    }
+
     private suspend fun getHistoricalForecastFromApi(
         city: ArchiveCity,
         monthKey: String
@@ -154,25 +228,38 @@ class WeatherRepository @Inject constructor(
             yesterday
         )
 
-        return if (requestedEndDate > latestAvailableArchiveDate) {
-            val pastDays = java.time.temporal.ChronoUnit.DAYS
-                .between(startDate, requestedEndDate)
-                .toInt()
-                .plus(1)
-                .coerceIn(1, 92)
+        return when {
+            requestedEndDate <= latestAvailableArchiveDate -> {
+                getHistoricalForecastFromArchiveInChunks(
+                    city = city,
+                    startDate = startDate,
+                    endDate = requestedEndDate
+                )
+            }
 
-            api.recentPastForecast(
-                lat = city.latitude,
-                lon = city.longitude,
-                pastDays = pastDays,
-                timezone = city.timezone
-            )
-        } else {
-            getHistoricalForecastFromArchiveInChunks(
-                city = city,
-                startDate = startDate,
-                endDate = requestedEndDate
-            )
+            startDate > latestAvailableArchiveDate -> {
+                getRecentPastForecastForRange(
+                    city = city,
+                    startDate = startDate,
+                    endDate = requestedEndDate
+                )
+            }
+
+            else -> {
+                val archivePart = getHistoricalForecastFromArchiveInChunks(
+                    city = city,
+                    startDate = startDate,
+                    endDate = latestAvailableArchiveDate
+                )
+
+                val recentPart = getRecentPastForecastForRange(
+                    city = city,
+                    startDate = latestAvailableArchiveDate.plusDays(1),
+                    endDate = requestedEndDate
+                )
+
+                mergeHistoricalResponses(listOf(archivePart, recentPart))
+            }
         }
     }
 

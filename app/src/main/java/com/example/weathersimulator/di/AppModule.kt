@@ -3,7 +3,7 @@ package com.example.weathersimulator.di
 import android.content.Context
 import androidx.room.Room
 import com.example.weathersimulator.data.local.user.UserDao
-import com.example.weathersimulator.data.local.weather.WeatherDatabase
+import com.example.weathersimulator.data.local.database.WeatherSimulatorDatabase
 import com.example.weathersimulator.data.local.weather.WeatherCsvReader
 import com.example.weathersimulator.data.repository.UserRepository
 import com.example.weathersimulator.domain.usecase.LoginUserUseCase
@@ -17,9 +17,9 @@ import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 import com.example.weathersimulator.data.local.ai.AiMessageDao
 import com.example.weathersimulator.data.local.ai.AiConversationDao
-import com.example.weathersimulator.data.local.weather.MIGRATION_3_4
+import com.example.weathersimulator.data.local.database.MIGRATION_3_4
 import com.example.weathersimulator.data.local.city.FavoriteCityDao
-import com.example.weathersimulator.data.local.weather.MIGRATION_4_5
+import com.example.weathersimulator.data.local.database.MIGRATION_4_5
 
 
 @Module
@@ -34,10 +34,10 @@ object AppModule {
     @Singleton
     fun provideDatabase(
         @ApplicationContext context: Context
-    ): WeatherDatabase {
+    ): WeatherSimulatorDatabase {
         return Room.databaseBuilder(
             context,
-            WeatherDatabase::class.java,
+            WeatherSimulatorDatabase::class.java,
             "weather_db"
         )
         .addMigrations(MIGRATION_3_4, MIGRATION_4_5)
@@ -45,7 +45,7 @@ object AppModule {
     }
 
     @Provides
-    fun provideUserDao(db: WeatherDatabase): UserDao = db.userDao()
+    fun provideUserDao(db: WeatherSimulatorDatabase): UserDao = db.userDao()
 
     @Provides
     @Singleton
@@ -71,17 +71,17 @@ object AppModule {
     ): RegisterUserUseCase = RegisterUserUseCase(repo)
 
     @Provides
-    fun provideAiMessageDao(db: WeatherDatabase): AiMessageDao {
+    fun provideAiMessageDao(db: WeatherSimulatorDatabase): AiMessageDao {
         return db.aiMessageDao()
     }
 
     @Provides
-    fun provideAiConversationDao(db: WeatherDatabase): AiConversationDao {
+    fun provideAiConversationDao(db: WeatherSimulatorDatabase): AiConversationDao {
         return db.aiConversationDao()
     }
 
     @Provides
-    fun provideFavoriteCityDao(db: WeatherDatabase): FavoriteCityDao {
+    fun provideFavoriteCityDao(db: WeatherSimulatorDatabase): FavoriteCityDao {
         return db.favoriteCityDao()
     }
 }

@@ -1,4 +1,4 @@
-package com.example.weathersimulator.data.local.weather
+package com.example.weathersimulator.data.local.database
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
@@ -22,7 +22,7 @@ import com.example.weathersimulator.data.local.city.FavoriteCityDao
     ],
     version = 5
 )
-abstract class WeatherDatabase : RoomDatabase() {
+abstract class WeatherSimulatorDatabase : RoomDatabase() {
     abstract fun aiMessageDao(): AiMessageDao
     abstract fun aiConversationDao(): AiConversationDao
     abstract fun userDao(): UserDao
