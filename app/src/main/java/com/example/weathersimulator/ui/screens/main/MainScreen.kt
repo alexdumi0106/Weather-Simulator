@@ -109,7 +109,10 @@ fun WeatherHomeSection(
     hourlyForecast: List<HourlyForecastItemUi>,
     dailyForecast: List<DailyForecastItemUi>,
     latitude: Double = 0.0,
-    longitude: Double = 0.0
+    longitude: Double = 0.0,
+    weatherStory: String?,
+    isWeatherStoryLoading: Boolean,
+    weatherStoryError: String?
 ) {
     val cityName = locationName.substringBefore(",").ifBlank { "Locația ta" }
 
@@ -261,6 +264,12 @@ fun WeatherHomeSection(
                 style = MaterialTheme.typography.titleMedium
             )
         }
+
+        WeatherStoryCard(
+            weatherStory = weatherStory,
+            isLoading = isWeatherStoryLoading,
+            error = weatherStoryError
+        )
     }
 
     Spacer(Modifier.height(16.dp))
@@ -285,6 +294,82 @@ fun WeatherHomeSection(
         longitude = longitude,
         modifier = Modifier.fillMaxWidth()
     )
+}
+
+@Composable
+fun WeatherStoryCard(
+    weatherStory: String?,
+    isLoading: Boolean,
+    error: String?
+) {
+    if (!isLoading && weatherStory.isNullOrBlank() && error.isNullOrBlank()) {
+        return
+    }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 10.dp),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White.copy(alpha = 0.14f)
+        ),
+        border = BorderStroke(
+            width = 1.dp,
+            color = Color.White.copy(alpha = 0.22f)
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = "Povestea vremii",
+                color = Color.White,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 16.sp
+            )
+
+            when {
+                isLoading -> {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp,
+                            color = Color.White,
+                            trackColor = Color.White.copy(alpha = 0.18f)
+                        )
+
+                        Text(
+                            text = "AI pregateste povestea vremii...",
+                            color = Color.White.copy(alpha = 0.85f),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+
+                !weatherStory.isNullOrBlank() -> {
+                    Text(
+                        text = weatherStory,
+                        color = Color.White.copy(alpha = 0.92f),
+                        style = MaterialTheme.typography.bodyMedium,
+                        lineHeight = 20.sp
+                    )
+                }
+
+                !error.isNullOrBlank() -> {
+                    Text(
+                        text = error,
+                        color = Color.White.copy(alpha = 0.82f),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+        }
+    }
 }
 
 
@@ -384,7 +469,10 @@ fun MainScreen(navController: NavController) {
                     hourlyForecast = weatherState.hourlyForecast,
                     dailyForecast = weatherState.dailyForecast,
                     latitude = weatherState.data?.latitude ?: s.lat ?: 0.0,
-                    longitude = weatherState.data?.longitude ?: s.lon ?: 0.0
+                    longitude = weatherState.data?.longitude ?: s.lon ?: 0.0,
+                    weatherStory = weatherState.weatherStory,
+                    isWeatherStoryLoading = weatherState.isWeatherStoryLoading,
+                    weatherStoryError = weatherState.weatherStoryError
                 )
                 Spacer(modifier = Modifier.height(24.dp))
             }

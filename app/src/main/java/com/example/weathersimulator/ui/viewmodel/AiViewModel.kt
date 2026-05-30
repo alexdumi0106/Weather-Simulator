@@ -1,12 +1,10 @@
 package com.example.weathersimulator.ui.viewmodel
 
-import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.weathersimulator.data.repository.AiChatRepository
 import com.example.weathersimulator.domain.usecase.GenerateAiResponseUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -14,22 +12,17 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import com.google.firebase.auth.FirebaseAuth
-
-private const val PREFS_NAME = "ai_settings"
-private const val KEY_SERVER_URL = "server_url"
-private const val DEFAULT_URL = "http://192.168.0.101:8000/"
+import com.example.weathersimulator.data.local.ai.AiSettingsStore
 
 @HiltViewModel
 class AiViewModel @Inject constructor(
     private val generateAiResponse: GenerateAiResponseUseCase,
     private val chatRepository: AiChatRepository,
-    @ApplicationContext private val context: Context
+    private val aiSettingsStore: AiSettingsStore
 ) : ViewModel() {
 
-    private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-
     private val _state = MutableStateFlow(
-        AiUiState(serverUrl = prefs.getString(KEY_SERVER_URL, DEFAULT_URL) ?: DEFAULT_URL)
+        AiUiState(serverUrl = aiSettingsStore.getServerUrl())
     )
     val state: StateFlow<AiUiState> = _state
 
@@ -70,7 +63,7 @@ class AiViewModel @Inject constructor(
 
     fun onServerUrlChange(value: String) {
         _state.update { it.copy(serverUrl = value) }
-        prefs.edit().putString(KEY_SERVER_URL, value).apply()
+        aiSettingsStore.setServerUrl(value)
     }
 
     fun selectConversation(conversationId: Long) {

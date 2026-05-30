@@ -9,6 +9,9 @@ data class WeatherUiState(
     val data: OpenMeteoResponse? = null,
     val hourlyForecast: List<HourlyForecastItemUi> = emptyList(),
     val dailyForecast: List<DailyForecastItemUi> = emptyList(),
+    val weatherStory: String? = null,
+    val isWeatherStoryLoading: Boolean = false,
+    val weatherStoryError: String? = null,
     val error: String? = null,
 
     val selectedCityName: String = "Locația ta",

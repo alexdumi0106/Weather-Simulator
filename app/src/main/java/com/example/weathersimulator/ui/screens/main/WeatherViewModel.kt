@@ -40,13 +40,17 @@ import kotlin.math.cos
 import kotlin.math.floor
 import kotlin.math.sin
 import kotlin.math.tan
+import com.example.weathersimulator.data.local.ai.AiSettingsStore
+import com.example.weathersimulator.domain.usecase.GenerateAiResponseUseCase
 
 @HiltViewModel
 class WeatherViewModel @Inject constructor(
     private val application: Application,
     private val weatherRepository: WeatherRepository,
     private val citySearchRepository: CitySearchRepository,
-    private val favoriteCityRepository: FavoriteCityRepository
+    private val favoriteCityRepository: FavoriteCityRepository,
+    private val generateAiResponse: GenerateAiResponseUseCase,
+    private val aiSettingsStore: AiSettingsStore
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(WeatherUiState())
@@ -347,9 +351,78 @@ class WeatherViewModel @Inject constructor(
         }
     }
 
+    private fun generateWeatherStory(response: OpenMeteoResponse) {
+        val prompt = buildWeatherStoryPrompt(response)
+
+        viewModelScope.launch {
+            _state.update {
+                it.copy(
+                    weatherStory = null,
+                    isWeatherStoryLoading = true,
+                    weatherStoryError = null
+                )
+            }
+
+            try {
+                val story = generateAiResponse(prompt, aiSettingsStore.getServerUrl())
+
+                _state.update {
+                    it.copy(
+                        weatherStory = story.trim(),
+                        isWeatherStoryLoading = false
+                    )
+                }
+            } catch (e: Exception) {
+                Log.e("WeatherStory", "Failed to generate weather story", e)
+
+                _state.update {
+                    it.copy(
+                        isWeatherStoryLoading = false,
+                        weatherStoryError = "Nu am putut genera povestea vremii: ${e.localizedMessage ?: "eroare necunoscuta"}"
+                    )
+                }
+            }
+        }
+    }
+
+    private fun buildWeatherStoryPrompt(response: OpenMeteoResponse): String {
+        val current = response.current
+        val hourly = response.hourly
+        val daily = response.daily
+
+        return """
+            Scrie un rezumat natural al vremii in limba romana, pentru utilizatorul unei aplicatii meteo.
+            Stil: clar, prietenos, maximum 3 propozitii.
+            Nu inventa date care nu apar mai jos.
+
+            Date curente:
+            Temperatura: ${current?.temperature}°C
+            Temperatura resimtita: ${current?.apparentTemperature}°C
+            Umiditate: ${current?.humidity}%
+            Vant: ${current?.windSpeed} km/h
+            Presiune: ${current?.pressure} hPa
+            Cod meteo: ${current?.weatherCode}
+            Nori: ${current?.cloudCover}%
+
+            Urmatoarele ore:
+            Ore: ${hourly?.time?.take(8)}
+            Temperaturi: ${hourly?.temperature?.take(8)}
+            Precipitatii: ${hourly?.precipitation?.take(8)}
+            Vant: ${hourly?.windSpeed?.take(8)}
+            Coduri meteo: ${hourly?.weatherCode?.take(8)}
+
+            Prognoza zilnica:
+            Zile: ${daily?.time?.take(3)}
+            Maxime: ${daily?.tempMax?.take(3)}
+            Minime: ${daily?.tempMin?.take(3)}
+            Coduri meteo: ${daily?.weatherCode?.take(3)}
+        """.trimIndent()
+    }
+
     private fun applyResponse(response: OpenMeteoResponse) {
         val hourlyItems = mapHourlyForecast(response)
         val dailyItems = mapDailyForecast(response)
+        generateWeatherStory(response)
 
         lastFetchAtMs = System.currentTimeMillis()
         lastFetchLat = response.latitude
