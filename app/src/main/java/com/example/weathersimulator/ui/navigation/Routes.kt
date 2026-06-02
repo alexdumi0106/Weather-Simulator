@@ -17,4 +17,6 @@ object Routes {
     const val WEATHER_HISTORY_ROUTE = "weather_history"
     const val WEATHER_HISTORY_DAY_ROUTE = "weather_history_day"
 
+    const val OUTFIT_AI = "outfit_ai"
+    const val NATURE_IMPACT = "nature_impact"
 }

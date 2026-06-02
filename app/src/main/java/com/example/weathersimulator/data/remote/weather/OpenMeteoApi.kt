@@ -12,11 +12,10 @@ interface OpenMeteoApi {
 
         
         @Query("current") current: String =
-            "temperature_2m,apparent_temperature,weather_code,is_day,cloud_cover,wind_speed_10m,relative_humidity_2m,pressure_msl",
+            "temperature_2m,apparent_temperature,weather_code,is_day,cloud_cover,wind_speed_10m,relative_humidity_2m,pressure_msl,uv_index",
 
-        
         @Query("hourly") hourly: String =
-            "temperature_2m,weather_code,is_day,cloud_cover,wind_speed_10m,wind_gusts_10m,relative_humidity_2m,pressure_msl,precipitation,rain",
+            "temperature_2m,weather_code,is_day,cloud_cover,wind_speed_10m,wind_gusts_10m,relative_humidity_2m,pressure_msl,precipitation,rain,uv_index",
 
         
         @Query("daily") daily: String =

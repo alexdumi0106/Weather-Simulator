@@ -19,6 +19,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -49,7 +51,9 @@ import androidx.compose.material3.CircularProgressIndicator
 fun WeatherHistoryDayScreen(
     state: WeatherUiState,
     onBackClick: () -> Unit,
-    onDaySelected: (String) -> Unit
+    onDaySelected: (String) -> Unit,
+    onGenerateAiDescription: () -> Unit,
+    onGenerateClimateComparison: () -> Unit
 ) {
     val selectedDayKey = state.selectedHistoryDay ?: state.availableHistoryDays.firstOrNull()?.key
     val selectedDate = remember(selectedDayKey) {
@@ -332,7 +336,9 @@ fun WeatherHistoryDayScreen(
                     HistoricalAiDescriptionCard(
                         text = state.historicalDayAiDescription,
                         isLoading = state.isHistoricalDayAiDescriptionLoading,
-                        error = state.historicalDayAiDescriptionError
+                        error = state.historicalDayAiDescriptionError,
+                        canGenerate = state.historyDaySummary != null,
+                        onGenerateClick = onGenerateAiDescription
                     )
                 }
 
@@ -340,7 +346,9 @@ fun WeatherHistoryDayScreen(
                     ClimateComparisonCard(
                         comparison = state.climateComparison,
                         isLoading = state.isClimateComparisonLoading,
-                        error = state.climateComparisonError
+                        error = state.climateComparisonError,
+                        canGenerate = state.historyDaySummary != null,
+                        onGenerateClick = onGenerateClimateComparison
                     )
                 }
 
@@ -522,12 +530,10 @@ private fun HistoricalHourRow(
 private fun HistoricalAiDescriptionCard(
     text: String?,
     isLoading: Boolean,
-    error: String?
+    error: String?,
+    canGenerate: Boolean,
+    onGenerateClick: () -> Unit
 ) {
-    if (!isLoading && text.isNullOrBlank() && error.isNullOrBlank()) {
-        return
-    }
-
     Card(
         colors = CardDefaults.cardColors(containerColor = Color(0xFF1E344A)),
         modifier = Modifier.fillMaxWidth()
@@ -576,6 +582,20 @@ private fun HistoricalAiDescriptionCard(
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color(0xFFFFB4B4)
                     )
+
+                    AiActionButton(
+                        text = "Reincearca descrierea AI",
+                        enabled = canGenerate,
+                        onClick = onGenerateClick
+                    )
+                }
+
+                else -> {
+                    AiActionButton(
+                        text = "Genereaza descrierea AI",
+                        enabled = canGenerate,
+                        onClick = onGenerateClick
+                    )
                 }
             }
         }
@@ -586,12 +606,10 @@ private fun HistoricalAiDescriptionCard(
 private fun ClimateComparisonCard(
     comparison: ClimateComparisonUi?,
     isLoading: Boolean,
-    error: String?
+    error: String?,
+    canGenerate: Boolean,
+    onGenerateClick: () -> Unit
 ) {
-    if (!isLoading && comparison == null && error.isNullOrBlank()) {
-        return
-    }
-
     Card(
         colors = CardDefaults.cardColors(containerColor = Color(0xFF1E344A)),
         modifier = Modifier.fillMaxWidth()
@@ -670,9 +688,43 @@ private fun ClimateComparisonCard(
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color(0xFFFFB4B4)
                     )
+
+                    AiActionButton(
+                        text = "Reincearca comparatia climatica",
+                        enabled = canGenerate,
+                        onClick = onGenerateClick
+                    )
+                }
+
+                else -> {
+                    AiActionButton(
+                        text = "Genereaza comparatia climatica",
+                        enabled = canGenerate,
+                        onClick = onGenerateClick
+                    )
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun AiActionButton(
+    text: String,
+    enabled: Boolean,
+    onClick: () -> Unit
+) {
+    Button(
+        onClick = onClick,
+        enabled = enabled,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = Color(0xFF3D6FA6),
+            contentColor = Color.White,
+            disabledContainerColor = Color.White.copy(alpha = 0.12f),
+            disabledContentColor = Color.White.copy(alpha = 0.45f)
+        )
+    ) {
+        Text(text)
     }
 }
 

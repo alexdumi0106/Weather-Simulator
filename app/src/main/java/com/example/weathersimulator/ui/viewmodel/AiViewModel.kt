@@ -13,6 +13,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 import com.google.firebase.auth.FirebaseAuth
 import com.example.weathersimulator.data.local.ai.AiSettingsStore
+import com.example.weathersimulator.data.remote.ai.WeatherSimulationRequest
 
 @HiltViewModel
 class AiViewModel @Inject constructor(
@@ -138,7 +139,10 @@ class AiViewModel @Inject constructor(
             }
 
             try {
-                val ans = generateAiResponse(prompt, url)
+                val ans = generateAiResponse.weatherSimulation(
+                    request = WeatherSimulationRequest(prompt = prompt),
+                    serverUrl = url
+                )
 
                 chatRepository.insertMessage(
                     conversationId = conversationId,

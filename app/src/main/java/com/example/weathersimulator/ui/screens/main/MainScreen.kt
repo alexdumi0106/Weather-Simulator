@@ -18,6 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
@@ -87,6 +88,8 @@ import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.PhotoCamera
+import androidx.compose.material.icons.rounded.Menu
+import androidx.compose.material.icons.rounded.WbSunny
 import com.example.weathersimulator.data.remote.city.CityResultDto
 import com.example.weathersimulator.data.local.city.FavoriteCityEntity
 import androidx.compose.material.icons.rounded.Search
@@ -96,6 +99,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.material.icons.rounded.Checkroom
 
 @Composable
 fun WeatherHomeSection(
@@ -113,9 +117,14 @@ fun WeatherHomeSection(
     longitude: Double = 0.0,
     weatherStory: String?,
     isWeatherStoryLoading: Boolean,
-    weatherStoryError: String?
+    weatherStoryError: String?,
+    onWeatherDataClick: () -> Unit,
+    onSkyAnalyzerClick: () -> Unit,
+    onOutfitAiClick: () -> Unit,
+    onNatureImpactClick: () -> Unit
 ) {
     val cityName = locationName.substringBefore(",").ifBlank { "Locația ta" }
+    var showQuickMenu by remember { mutableStateOf(false) }
 
     
 
@@ -168,27 +177,115 @@ fun WeatherHomeSection(
         verticalArrangement = Arrangement.spacedBy(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
-        ) {
-            Text(
-                text = cityName,
-                color = Color.White,
-                style = MaterialTheme.typography.headlineLarge.copy(
-                    fontWeight = FontWeight.Medium,
-                    fontSize = 30.sp
-                ),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Box(
+                modifier = Modifier.align(Alignment.TopEnd)
+            ) {
+                IconButton(
+                    onClick = { showQuickMenu = true }
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Menu,
+                        contentDescription = "Meniu rapid",
+                        tint = Color.White.copy(alpha = 0.92f),
+                        modifier = Modifier.size(30.dp)
+                    )
+                }
 
-            IconButton(onClick = onToggleSearch) {
-                Icon(
-                    imageVector = Icons.Rounded.Search,
-                    contentDescription = "Caută oraș",
-                    tint = Color.White.copy(alpha = 0.9f)
+                DropdownMenu(
+                    expanded = showQuickMenu,
+                    onDismissRequest = { showQuickMenu = false },
+                    modifier = Modifier.background(Color(0xFF173A5E))
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Arhivă", color = Color.White) },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Rounded.DateRange,
+                                contentDescription = null,
+                                tint = Color.White
+                            )
+                        },
+                        colors = MenuDefaults.itemColors(textColor = Color.White),
+                        onClick = {
+                            showQuickMenu = false
+                            onWeatherDataClick()
+                        }
+                    )
+
+                    DropdownMenuItem(
+                        text = { Text("Sky AI", color = Color.White) },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Rounded.PhotoCamera,
+                                contentDescription = null,
+                                tint = Color.White
+                            )
+                        },
+                        colors = MenuDefaults.itemColors(textColor = Color.White),
+                        onClick = {
+                            showQuickMenu = false
+                            onSkyAnalyzerClick()
+                        }
+                    )
+
+                    DropdownMenuItem(
+                        text = { Text("Outfit AI", color = Color.White) },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Rounded.Checkroom,
+                                contentDescription = null,
+                                tint = Color.White
+                            )
+                        },
+                        colors = MenuDefaults.itemColors(textColor = Color.White),
+                        onClick = {
+                            showQuickMenu = false
+                            onOutfitAiClick()
+                        }
+                    )
+
+                    DropdownMenuItem(
+                        text = { Text("Natura", color = Color.White) },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Rounded.WbSunny,
+                                contentDescription = null,
+                                tint = Color.White
+                            )
+                        },
+                        colors = MenuDefaults.itemColors(textColor = Color.White),
+                        onClick = {
+                            showQuickMenu = false
+                            onNatureImpactClick()
+                        }
+                    )
+                }
+            }
+
+            Row(
+                modifier = Modifier.align(Alignment.TopCenter),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = cityName,
+                    color = Color.White,
+                    style = MaterialTheme.typography.headlineLarge.copy(
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 30.sp
+                    ),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
+
+                IconButton(onClick = onToggleSearch) {
+                    Icon(
+                        imageVector = Icons.Rounded.Search,
+                        contentDescription = "Caută oraș",
+                        tint = Color.White.copy(alpha = 0.9f)
+                    )
+                }
             }
         }
 
@@ -408,24 +505,34 @@ fun MainScreen(navController: NavController) {
         isDay = weatherState.data?.current?.isDay == 1
     )
 
+    val openWeatherHistory = {
+        weatherVm.setHistoryMode(true)
+        weatherVm.loadHistorical()
+        navController.navigate(Routes.WEATHER_HISTORY_ROUTE)
+    }
+
+    val openSkyAnalyzer = {
+        navController.navigate(Routes.SKY_ANALYZER)
+    }
+
+    val openOutfitAi = {
+        navController.navigate(Routes.OUTFIT_AI)
+    }
+
+    val openNatureImpact = {
+        navController.navigate(Routes.NATURE_IMPACT)
+    }
+
    Scaffold(
         containerColor = Color.Transparent,
         bottomBar = {
             WeatherBottomNavBar(
                 onHomeClick = { },
-                onWeatherDataClick = {
-                    weatherVm.setHistoryMode(true)
-                    weatherVm.loadHistorical()
-                    navController.navigate(Routes.WEATHER_HISTORY_ROUTE)
-                },
                 onSimulatorClick = {
                     navController.navigate(Routes.SIMULATOR)
                 },
                 onSettingsClick = {
                     navController.navigate(Routes.SETTINGS)
-                },
-                onSkyAnalyzerClick = {
-                    navController.navigate(Routes.SKY_ANALYZER)
                 }
             )
         }
@@ -476,7 +583,11 @@ fun MainScreen(navController: NavController) {
                     longitude = weatherState.data?.longitude ?: s.lon ?: 0.0,
                     weatherStory = weatherState.weatherStory,
                     isWeatherStoryLoading = weatherState.isWeatherStoryLoading,
-                    weatherStoryError = weatherState.weatherStoryError
+                    weatherStoryError = weatherState.weatherStoryError,
+                    onWeatherDataClick = openWeatherHistory,
+                    onSkyAnalyzerClick = openSkyAnalyzer,
+                    onOutfitAiClick = openOutfitAi,
+                    onNatureImpactClick = openNatureImpact
                 )
                 Spacer(modifier = Modifier.height(24.dp))
             }
@@ -487,10 +598,8 @@ fun MainScreen(navController: NavController) {
 @Composable
 fun WeatherBottomNavBar(
     onHomeClick: () -> Unit,
-    onWeatherDataClick: () -> Unit,
     onSimulatorClick: () -> Unit,
-    onSettingsClick: () -> Unit,
-    onSkyAnalyzerClick: () -> Unit
+    onSettingsClick: () -> Unit
 ) {
     NavigationBar(
         containerColor = Color(0xFF173A5E).copy(alpha = 0.96f),
@@ -511,19 +620,6 @@ fun WeatherBottomNavBar(
 
         NavigationBarItem(
             selected = false,
-            onClick = onWeatherDataClick,
-            icon = {
-                Icon(
-                    imageVector = Icons.Rounded.DateRange,
-                    contentDescription = "Weather Data"
-                )
-            },
-            label = { Text("Arhivă") },
-            colors = navItemColors()
-        )
-
-        NavigationBarItem(
-            selected = false,
             onClick = onSimulatorClick,
             icon = {
                 Icon(
@@ -538,19 +634,6 @@ fun WeatherBottomNavBar(
 
         NavigationBarItem(
             selected = false,
-            onClick = onSkyAnalyzerClick,
-            icon = {
-                Icon(
-                    imageVector = Icons.Rounded.PhotoCamera,
-                    contentDescription = "Sky Analyzer"
-                )
-            },
-            label = { Text("Sky AI") },
-            colors = navItemColors()
-        )
-
-        NavigationBarItem(
-            selected = false,
             onClick = onSettingsClick,
             icon = {
                 Icon(
@@ -558,7 +641,7 @@ fun WeatherBottomNavBar(
                     contentDescription = "Settings"
                 )
             },
-            label = { Text("Setări") },
+            label = { Text("Profil") },
             colors = navItemColors()
         )
     }

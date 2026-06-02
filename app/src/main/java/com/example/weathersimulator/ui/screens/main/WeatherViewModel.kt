@@ -18,7 +18,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.delay
 import javax.inject.Inject
 import android.util.Log
 import kotlin.math.abs
@@ -43,6 +42,12 @@ import kotlin.math.sin
 import kotlin.math.tan
 import com.example.weathersimulator.data.local.ai.AiSettingsStore
 import com.example.weathersimulator.domain.usecase.GenerateAiResponseUseCase
+import com.example.weathersimulator.data.remote.ai.ClimateComparisonRequest
+import com.example.weathersimulator.data.remote.ai.ClimateDaySummaryRequest
+import com.example.weathersimulator.data.remote.ai.HistoricalDayDescriptionRequest
+import com.example.weathersimulator.data.remote.ai.HistoricalHourlySnapshot
+import com.example.weathersimulator.data.remote.ai.OutfitRecommendationRequest
+import com.example.weathersimulator.data.remote.ai.WeatherStoryRequest
 
 @HiltViewModel
 class WeatherViewModel @Inject constructor(
@@ -365,8 +370,6 @@ class WeatherViewModel @Inject constructor(
     }
 
     private fun generateWeatherStory(response: OpenMeteoResponse) {
-        val prompt = buildWeatherStoryPrompt(response)
-
         viewModelScope.launch {
             _state.update {
                 it.copy(
@@ -377,7 +380,10 @@ class WeatherViewModel @Inject constructor(
             }
 
             try {
-                val story = generateAiResponse(prompt, aiSettingsStore.getServerUrl())
+                val story = generateAiResponse.weatherStory(
+                    request = buildWeatherStoryRequest(response),
+                    serverUrl = aiSettingsStore.getServerUrl()
+                )
 
                 _state.update {
                     it.copy(
@@ -398,38 +404,29 @@ class WeatherViewModel @Inject constructor(
         }
     }
 
-    private fun buildWeatherStoryPrompt(response: OpenMeteoResponse): String {
+    private fun buildWeatherStoryRequest(response: OpenMeteoResponse): WeatherStoryRequest {
         val current = response.current
         val hourly = response.hourly
         val daily = response.daily
 
-        return """
-            Scrie un rezumat natural al vremii in limba romana, pentru utilizatorul unei aplicatii meteo.
-            Stil: clar, prietenos, maximum 3 propozitii.
-            Nu inventa date care nu apar mai jos.
-
-            Date curente:
-            Temperatura: ${current?.temperature}°C
-            Temperatura resimtita: ${current?.apparentTemperature}°C
-            Umiditate: ${current?.humidity}%
-            Vant: ${current?.windSpeed} km/h
-            Presiune: ${current?.pressure} hPa
-            Cod meteo: ${current?.weatherCode}
-            Nori: ${current?.cloudCover}%
-
-            Urmatoarele ore:
-            Ore: ${hourly?.time?.take(8)}
-            Temperaturi: ${hourly?.temperature?.take(8)}
-            Precipitatii: ${hourly?.precipitation?.take(8)}
-            Vant: ${hourly?.windSpeed?.take(8)}
-            Coduri meteo: ${hourly?.weatherCode?.take(8)}
-
-            Prognoza zilnica:
-            Zile: ${daily?.time?.take(3)}
-            Maxime: ${daily?.tempMax?.take(3)}
-            Minime: ${daily?.tempMin?.take(3)}
-            Coduri meteo: ${daily?.weatherCode?.take(3)}
-        """.trimIndent()
+        return WeatherStoryRequest(
+            temperature = current?.temperature,
+            apparentTemperature = current?.apparentTemperature,
+            humidity = current?.humidity,
+            windSpeed = current?.windSpeed,
+            pressure = current?.pressure,
+            weatherCode = current?.weatherCode,
+            cloudCover = current?.cloudCover,
+            nextHours = hourly?.time?.take(8) ?: emptyList(),
+            nextTemperatures = hourly?.temperature?.take(8) ?: emptyList(),
+            nextPrecipitation = hourly?.precipitation?.take(8) ?: emptyList(),
+            nextWindSpeed = hourly?.windSpeed?.take(8) ?: emptyList(),
+            nextWeatherCodes = hourly?.weatherCode?.take(8) ?: emptyList(),
+            dailyDates = daily?.time?.take(3) ?: emptyList(),
+            dailyMaxTemperatures = daily?.tempMax?.take(3) ?: emptyList(),
+            dailyMinTemperatures = daily?.tempMin?.take(3) ?: emptyList(),
+            dailyWeatherCodes = daily?.weatherCode?.take(3) ?: emptyList()
+        )
     }
 
     private fun applyResponse(response: OpenMeteoResponse) {
@@ -632,28 +629,37 @@ class WeatherViewModel @Inject constructor(
             it.copy(
                 selectedHistoryDay = dayKey,
                 historicalHourlyForecast = hourlyItems,
-                historyDaySummary = daySummary
+                historyDaySummary = daySummary,
+                historicalDayAiDescription = null,
+                isHistoricalDayAiDescriptionLoading = false,
+                historicalDayAiDescriptionError = null,
+                climateComparison = null,
+                isClimateComparisonLoading = false,
+                climateComparisonError = null
             )
         }
+    }
 
-        if (daySummary != null) {
-            generateHistoricalDayAiDescription(
-                dayKey = dayKey,
-                summary = daySummary,
-                hourlyItems = hourlyItems
-            )
+    fun requestHistoricalDayAiDescription() {
+        val dayKey = _state.value.selectedHistoryDay ?: return
+        val summary = _state.value.historyDaySummary ?: return
+        val hourlyItems = _state.value.historicalHourlyForecast
 
-            viewModelScope.launch {
-                delay(2500L)
+        generateHistoricalDayAiDescription(
+            dayKey = dayKey,
+            summary = summary,
+            hourlyItems = hourlyItems
+        )
+    }
 
-                if (_state.value.selectedHistoryDay == dayKey) {
-                    loadClimateComparison(
-                        selectedDayKey = dayKey,
-                        selectedSummary = daySummary
-                    )
-                }
-            }
-        }
+    fun requestClimateComparison() {
+        val dayKey = _state.value.selectedHistoryDay ?: return
+        val summary = _state.value.historyDaySummary ?: return
+
+        loadClimateComparison(
+            selectedDayKey = dayKey,
+            selectedSummary = summary
+        )
     }
 
     private fun generateHistoricalDayAiDescription(
@@ -661,31 +667,6 @@ class WeatherViewModel @Inject constructor(
         summary: HistoryDaySummaryUi,
         hourlyItems: List<HourlyForecastItemUi>
     ) {
-        val prompt = """
-            Scrie o descriere naturala, in limba romana, pentru ziua meteo selectata.
-            Incepe cu aspectul fizic al vremii: cum arata cerul, daca a fost senin, noros, innorat, ploios, cu ceata sau variabil.
-            Foloseste evolutia pe ore ca sa descrii schimbarea vremii de-a lungul zilei.
-            Dupa descrierea vizuala, mentioneaza pe scurt temperatura maxima, temperatura minima, umiditatea medie, presiunea medie, rasaritul si apusul.
-            Nu inventa date. Foloseste doar valorile de mai jos.
-            Maximum 4 propozitii.
-
-            Data: ${summary.dateLabel}
-            Temperatura maxima: ${summary.maxTemperature}
-            Temperatura minima: ${summary.minTemperature}
-            Umiditate medie: ${summary.averageHumidity}
-            Presiune medie: ${summary.averagePressure}
-            Rasarit: ${summary.sunrise ?: "-"}
-            Apus: ${summary.sunset ?: "-"}
-            Evolutie pe ore reprezentative: ${
-                hourlyItems
-                    .filter { it.time in listOf("07:00", "10:00", "13:00", "16:00", "19:00", "22:00") }
-                    .ifEmpty { hourlyItems.take(6) }
-                    .joinToString { item ->
-                        "${item.time}: ${item.temperature}, cod meteo ${item.weatherCode}, nori ${item.cloudCover}%"
-                    }
-            }
-        """.trimIndent()
-
         viewModelScope.launch {
             _state.update {
                 it.copy(
@@ -696,7 +677,10 @@ class WeatherViewModel @Inject constructor(
             }
 
             try {
-                val text = generateAiResponse.local(prompt, aiSettingsStore.getServerUrl()).trim()
+                val text = generateAiResponse.historicalDayDescription(
+                    request = buildHistoricalDayDescriptionRequest(summary, hourlyItems),
+                    serverUrl = aiSettingsStore.getServerUrl()
+                ).trim()
 
                 if (text.startsWith("Backend error:", ignoreCase = true)) {
                     error("Serviciul AI este momentan ocupat. Reincearca peste cateva secunde.")
@@ -717,6 +701,34 @@ class WeatherViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    private fun buildHistoricalDayDescriptionRequest(
+        summary: HistoryDaySummaryUi,
+        hourlyItems: List<HourlyForecastItemUi>
+    ): HistoricalDayDescriptionRequest {
+        val snapshots = hourlyItems
+            .filter { it.time in listOf("07:00", "13:00", "19:00") }
+            .ifEmpty { hourlyItems.take(3) }
+            .map { item ->
+                HistoricalHourlySnapshot(
+                    time = item.time,
+                    temperature = item.temperature,
+                    weatherCode = item.weatherCode,
+                    cloudCover = item.cloudCover
+                )
+            }
+
+        return HistoricalDayDescriptionRequest(
+            dateLabel = summary.dateLabel,
+            maxTemperature = summary.maxTemperature,
+            minTemperature = summary.minTemperature,
+            averageHumidity = summary.averageHumidity,
+            averagePressure = summary.averagePressure,
+            sunrise = summary.sunrise,
+            sunset = summary.sunset,
+            hourlySnapshots = snapshots
+        )
     }
 
     private fun resolveComparisonDate(selectedDate: LocalDate): LocalDate {
@@ -784,12 +796,13 @@ class WeatherViewModel @Inject constructor(
                     response = comparisonResponse
                 ) ?: error("Nu am putut calcula comparația.")
 
-                val aiPrompt = buildClimateComparisonPrompt(
-                    selectedSummary = selectedSummary,
-                    comparisonSummary = comparisonSummary
-                )
-
-                val aiText = generateAiResponse.local(aiPrompt, aiSettingsStore.getServerUrl()).trim()
+                val aiText = generateAiResponse.climateComparison(
+                    request = buildClimateComparisonRequest(
+                        selectedSummary = selectedSummary,
+                        comparisonSummary = comparisonSummary
+                    ),
+                    serverUrl = aiSettingsStore.getServerUrl()
+                ).trim()
 
                 if (aiText.startsWith("Backend error:", ignoreCase = true)) {
                     error("Serviciul AI este momentan ocupat. Reincearca peste cateva secunde.")
@@ -824,31 +837,24 @@ class WeatherViewModel @Inject constructor(
         }
     }
 
-    private fun buildClimateComparisonPrompt(
+    private fun buildClimateComparisonRequest(
         selectedSummary: HistoryDaySummaryUi,
         comparisonSummary: HistoryDaySummaryUi
-    ): String {
-        return """
-            Compara pe scurt doua zile meteo, in limba romana.
-            Incepe cu diferenta de aspect fizic al vremii: care zi a parut mai senina, mai innorata, mai umeda, mai apasatoare sau mai stabila.
-            Apoi compara temperatura maxima, temperatura minima, umiditatea medie si presiunea medie.
-            Nu inventa date. Foloseste doar valorile de mai jos.
-            Maximum 4 propozitii.
+    ): ClimateComparisonRequest {
+        return ClimateComparisonRequest(
+            selectedDay = selectedSummary.toClimateDaySummaryRequest(),
+            comparisonDay = comparisonSummary.toClimateDaySummaryRequest()
+        )
+    }
 
-            Zi selectata:
-            Data: ${selectedSummary.dateLabel}
-            Max: ${selectedSummary.maxTemperature}
-            Min: ${selectedSummary.minTemperature}
-            Umiditate medie: ${selectedSummary.averageHumidity}
-            Presiune medie: ${selectedSummary.averagePressure}
-
-            Zi de comparatie:
-            Data: ${comparisonSummary.dateLabel}
-            Max: ${comparisonSummary.maxTemperature}
-            Min: ${comparisonSummary.minTemperature}
-            Umiditate medie: ${comparisonSummary.averageHumidity}
-            Presiune medie: ${comparisonSummary.averagePressure}
-        """.trimIndent()
+    private fun HistoryDaySummaryUi.toClimateDaySummaryRequest(): ClimateDaySummaryRequest {
+        return ClimateDaySummaryRequest(
+            dateLabel = dateLabel,
+            maxTemperature = maxTemperature,
+            minTemperature = minTemperature,
+            averageHumidity = averageHumidity,
+            averagePressure = averagePressure
+        )
     }
 
     private fun buildAvailableHistoryMonthsFromResponse(
@@ -1920,5 +1926,84 @@ class WeatherViewModel @Inject constructor(
                 error = null
             )
         }
+    }
+
+    fun generateOutfitRecommendation(cityName: String) {
+        val response = _state.value.data
+
+        if (response?.current == null) {
+            _state.update {
+                it.copy(outfitRecommendationError = "Nu exista date meteo disponibile pentru recomandare.")
+            }
+            return
+        }
+
+        viewModelScope.launch {
+            _state.update {
+                it.copy(
+                    outfitRecommendation = null,
+                    isOutfitRecommendationLoading = true,
+                    outfitRecommendationError = null
+                )
+            }
+
+            try {
+                val text = withContext(Dispatchers.IO) {
+                    generateAiResponse.outfitRecommendation(
+                        request = buildOutfitRecommendationRequest(response, cityName),
+                        serverUrl = aiSettingsStore.getServerUrl()
+                    )
+                }.trim()
+
+                _state.update {
+                    it.copy(
+                        outfitRecommendation = text,
+                        isOutfitRecommendationLoading = false
+                    )
+                }
+            } catch (e: Exception) {
+                _state.update {
+                    it.copy(
+                        isOutfitRecommendationLoading = false,
+                        outfitRecommendationError = "Nu am putut genera recomandarea de tinuta."
+                    )
+                }
+            }
+        }
+    }
+
+    private fun buildOutfitRecommendationRequest(
+        response: OpenMeteoResponse,
+        cityName: String
+    ): OutfitRecommendationRequest {
+        val current = response.current
+        val hourly = response.hourly
+
+        val currentIndex = current?.time
+            ?.let { hourly?.time?.indexOf(it) }
+            ?.takeIf { it >= 0 }
+            ?: 0
+
+        return OutfitRecommendationRequest(
+            cityName = cityName,
+            temperature = current?.temperature,
+            apparentTemperature = current?.apparentTemperature,
+            humidity = current?.humidity,
+            windSpeed = current?.windSpeed,
+            precipitationNextHours = hourly?.precipitation
+                ?.drop(currentIndex)
+                ?.take(8)
+                ?: emptyList(),
+            uvIndex = current?.uvIndex,
+            momentOfDay = if (current?.isDay == 1) "zi" else "seara/noapte",
+            nextHours = hourly?.time
+                ?.drop(currentIndex)
+                ?.take(8)
+                ?: emptyList(),
+            nextTemperatures = hourly?.temperature
+                ?.drop(currentIndex)
+                ?.take(8)
+                ?: emptyList()
+        )
     }
 }

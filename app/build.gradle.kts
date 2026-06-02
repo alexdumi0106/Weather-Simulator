@@ -74,5 +74,9 @@ dependencies {
 
 kapt {
     correctErrorTypes = true
+
+    javacOptions {
+        option("-Xlint:-options")
+    }
 }
 

@@ -22,6 +22,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import com.example.weathersimulator.ui.screens.main.WeatherViewModel
 import com.example.weathersimulator.ui.screens.skyanalyzer.SkyAnalyzerScreen
+import com.example.weathersimulator.ui.screens.outfit.OutfitRecommendationScreen
+import com.example.weathersimulator.ui.screens.nature.NatureImpactScreen
 
 
 @Composable
@@ -105,7 +107,9 @@ fun AppNavigation() {
                     onBackClick = { navController.popBackStack() },
                     onDaySelected = { dayKey ->
                         weatherVm.selectHistoryDay(dayKey)
-                    }
+                    },
+                    onGenerateAiDescription = weatherVm::requestHistoricalDayAiDescription,
+                    onGenerateClimateComparison = weatherVm::requestClimateComparison
                 )
             }
         }
@@ -131,6 +135,35 @@ fun AppNavigation() {
         composable(Routes.SKY_ANALYZER) {
             WeatherSimulatorTheme(darkTheme = false, dynamicColor = false) {
                 SkyAnalyzerScreen(
+                    onBack = { navController.popBackStack() }
+                )
+            }
+        }
+
+        composable(Routes.OUTFIT_AI) {
+            val activity = LocalContext.current as ComponentActivity
+            val weatherVm: WeatherViewModel = hiltViewModel(activity)
+            val state by weatherVm.state.collectAsState()
+
+            WeatherSimulatorTheme(darkTheme = false, dynamicColor = false) {
+                OutfitRecommendationScreen(
+                    state = state,
+                    cityName = state.selectedCityName,
+                    onBack = { navController.popBackStack() },
+                    onGenerateClick = weatherVm::generateOutfitRecommendation
+                )
+            }
+        }
+
+        composable(Routes.NATURE_IMPACT) {
+            val activity = LocalContext.current as ComponentActivity
+            val weatherVm: WeatherViewModel = hiltViewModel(activity)
+            val state by weatherVm.state.collectAsState()
+
+            WeatherSimulatorTheme(darkTheme = false, dynamicColor = false) {
+                NatureImpactScreen(
+                    state = state,
+                    cityName = state.selectedCityName,
                     onBack = { navController.popBackStack() }
                 )
             }

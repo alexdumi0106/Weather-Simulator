@@ -40,7 +40,10 @@ data class CurrentDto(
     val pressure: Double? = null,
 
     @SerializedName("is_day")
-    val isDay: Int?
+    val isDay: Int?, 
+
+    @SerializedName("uv_index")
+    val uvIndex: Double? = null
 )
 
 data class HourlyDto(
@@ -74,7 +77,10 @@ data class HourlyDto(
     val pressure: List<Double> = emptyList(),
 
     @SerializedName("is_day")
-    val isDay: List<Int> = emptyList()
+    val isDay: List<Int> = emptyList(),
+
+    @SerializedName("uv_index")
+    val uvIndex: List<Double> = emptyList()
 )
 
 data class DailyDto(

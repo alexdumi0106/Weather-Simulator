@@ -20,8 +20,10 @@ import com.example.weathersimulator.data.local.city.FavoriteCityDao
         AiConversationEntity::class,
         FavoriteCityEntity::class
     ],
-    version = 5
+    version = 5,
+    exportSchema = false
 )
+
 abstract class WeatherSimulatorDatabase : RoomDatabase() {
     abstract fun aiMessageDao(): AiMessageDao
     abstract fun aiConversationDao(): AiConversationDao
