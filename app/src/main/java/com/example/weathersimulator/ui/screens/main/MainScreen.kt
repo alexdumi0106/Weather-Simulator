@@ -15,7 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material.icons.rounded.AccountCircle
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MenuDefaults
@@ -101,6 +101,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.material.icons.rounded.Checkroom
+import androidx.compose.material.icons.rounded.School
 
 @Composable
 fun WeatherHomeSection(
@@ -123,6 +124,7 @@ fun WeatherHomeSection(
     onSkyAnalyzerClick: () -> Unit,
     onOutfitAiClick: () -> Unit,
     onNatureImpactClick: () -> Unit,
+    onWeatherQuizClick: () -> Unit,
     onWeatherGamesClick: () -> Unit
 ) {
     val cityName = locationName.substringBefore(",").ifBlank { "Locația ta" }
@@ -260,6 +262,22 @@ fun WeatherHomeSection(
                         onClick = {
                             showQuickMenu = false
                             onNatureImpactClick()
+                        }
+                    )
+
+                    DropdownMenuItem(
+                        text = { Text("Meteo Quiz", color = Color.White) },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Rounded.School,
+                                contentDescription = null,
+                                tint = Color.White
+                            )
+                        },
+                        colors = MenuDefaults.itemColors(textColor = Color.White),
+                        onClick = {
+                            showQuickMenu = false
+                            onWeatherQuizClick()
                         }
                     )
 
@@ -440,7 +458,7 @@ fun WeatherStoryCard(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
-                text = "Povestea vremii",
+                text = "Interpretarea vremii",
                 color = Color.White,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 16.sp
@@ -460,7 +478,7 @@ fun WeatherStoryCard(
                         )
 
                         Text(
-                            text = "AI pregateste povestea vremii...",
+                            text = "AI pregateste interpretarea vremii...",
                             color = Color.White.copy(alpha = 0.85f),
                             style = MaterialTheme.typography.bodyMedium
                         )
@@ -541,6 +559,10 @@ fun MainScreen(navController: NavController) {
         navController.navigate(Routes.NATURE_IMPACT)
     }
 
+    val openWeatherQuiz = {
+        navController.navigate(Routes.WEATHER_QUIZ)
+    }
+
     val openWeatherGames = {
         navController.navigate(Routes.WEATHER_GAMES)
     }
@@ -610,6 +632,7 @@ fun MainScreen(navController: NavController) {
                     onSkyAnalyzerClick = openSkyAnalyzer,
                     onOutfitAiClick = openOutfitAi,
                     onNatureImpactClick = openNatureImpact,
+                    onWeatherQuizClick = openWeatherQuiz,
                     onWeatherGamesClick = openWeatherGames
                 )
                 Spacer(modifier = Modifier.height(24.dp))
@@ -660,8 +683,8 @@ fun WeatherBottomNavBar(
             onClick = onSettingsClick,
             icon = {
                 Icon(
-                    imageVector = Icons.Rounded.Settings,
-                    contentDescription = "Settings"
+                    imageVector = Icons.Rounded.AccountCircle,
+                    contentDescription = "Profil"
                 )
             },
             label = { Text("Profil") },

@@ -19,6 +19,7 @@ object Routes {
 
     const val OUTFIT_AI = "outfit_ai"
     const val NATURE_IMPACT = "nature_impact"
+    const val WEATHER_QUIZ = "weather_quiz"
     const val WEATHER_GAMES = "weather_games"
     const val CLOUD_CATCHER = "cloud_catcher"
     const val WEATHER_MEMORY = "weather_memory"

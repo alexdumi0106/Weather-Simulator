@@ -16,6 +16,7 @@ object SkyAnalyzer {
         var total = 0
         var sky = 0
         var brightCloud = 0
+        var mediumCloud = 0
         var darkCloudCandidate = 0
         var warmLight = 0
         var fogLike = 0
@@ -43,13 +44,34 @@ object SkyAnalyzer {
                     saturation in 0.10f..0.55f &&
                     brightness in 0.25f..0.88f &&
                     red >= blue
-                val isNeutral = saturation < 0.24f && channelSpread < 0.18f
+                val isNeutral = saturation < 0.30f && channelSpread < 0.24f
+                val isCoolGray = hue in 185f..265f &&
+                    saturation in 0.08f..0.52f &&
+                    brightness in 0.18f..0.72f
+                val isAtmosphericRegion = y < scaled.height * 0.78f
 
-                val isBlueSky = hue in 185f..250f && saturation > 0.14f && brightness > 0.38f
-                val isBrightCloud = isNeutral && brightness > 0.66f && !isVegetation && !isBuiltSurface
-                val isDarkCloud = isNeutral &&
-                    brightness in 0.24f..0.52f &&
-                    blue >= red * 0.84f &&
+                val isBlueSky = isAtmosphericRegion &&
+                    hue in 190f..245f &&
+                    saturation > 0.18f &&
+                    brightness > 0.46f &&
+                    channelSpread > 0.16f &&
+                    blue > red * 1.12f
+                val isBrightCloud = isAtmosphericRegion &&
+                    isNeutral &&
+                    brightness > 0.66f &&
+                    !isVegetation &&
+                    !isBuiltSurface
+                val isMediumCloud = isAtmosphericRegion &&
+                    !isBlueSky &&
+                    !isVegetation &&
+                    !isBuiltSurface &&
+                    (isNeutral || isCoolGray) &&
+                    brightness in 0.40f..0.78f
+                val isDarkCloud = isAtmosphericRegion &&
+                    !isBlueSky &&
+                    (isNeutral || isCoolGray || channelSpread < 0.32f) &&
+                    brightness in 0.18f..0.58f &&
+                    blue >= red * 0.72f &&
                     !isVegetation &&
                     !isBuiltSurface
                 val isWarm = hue in 12f..55f &&
@@ -61,6 +83,7 @@ object SkyAnalyzer {
                 if (isBlueSky) sky++
                 if (isBrightCloud) brightCloud++
                 if (isDarkCloud) darkCloudCandidate++
+                if (isMediumCloud && !isDarkCloud) mediumCloud++
                 if (isWarm) warmLight++
                 if (isFogLike) fogLike++
 
@@ -81,13 +104,15 @@ object SkyAnalyzer {
 
         val skyRatio = sky / total.toFloat()
         val brightCloudRatio = brightCloud / total.toFloat()
+        val mediumCloudRatio = mediumCloud / total.toFloat()
         val rawDarkCloudRatio = darkCloudCandidate / total.toFloat()
-        val darkCloudRatio = if (skyRatio + brightCloudRatio < 0.16f) {
-            rawDarkCloudRatio * 0.18f
+        val cloudEvidenceRatio = brightCloudRatio + mediumCloudRatio + rawDarkCloudRatio
+        val darkCloudRatio = if (cloudEvidenceRatio < 0.10f && skyRatio < 0.08f) {
+            rawDarkCloudRatio * 0.45f
         } else {
             rawDarkCloudRatio
         }
-        val cloudRatio = (brightCloudRatio + darkCloudRatio).coerceIn(0f, 1f)
+        val cloudRatio = (brightCloudRatio + mediumCloudRatio + darkCloudRatio).coerceIn(0f, 1f)
 
         val metrics = SkyMetrics(
             skyRatio = skyRatio,
@@ -99,25 +124,31 @@ object SkyAnalyzer {
             contrast = contrast
         )
 
-        val lowLightRainBoost = if (metrics.cloudRatio > 0.28f) {
-            (0.58f - metrics.averageBrightness).coerceAtLeast(0f) * 42f
+        val lowLightRainBoost = if (metrics.cloudRatio > 0.24f) {
+            (0.64f - metrics.averageBrightness).coerceAtLeast(0f) * 52f
         } else {
             0f
         }
-        val textureRainBoost = if (metrics.cloudRatio > 0.22f) metrics.contrast * 18f else 0f
+        val textureRainBoost = if (metrics.cloudRatio > 0.22f) metrics.contrast * 26f else 0f
         val rainProbability = probability(
-            metrics.cloudRatio * 32f +
-                metrics.darkCloudRatio * 92f +
+            metrics.cloudRatio * 38f +
+                metrics.darkCloudRatio * 118f +
                 lowLightRainBoost +
                 textureRainBoost
         ).let { if (metrics.cloudRatio < 0.14f) it.coerceAtMost(18) else it }
 
-        val textureStormBoost = if (metrics.darkCloudRatio > 0.08f) metrics.contrast * 48f else 0f
+        val textureStormBoost = if (metrics.darkCloudRatio > 0.08f) metrics.contrast * 58f else 0f
+        val lowCeilingStormBoost = if (metrics.darkCloudRatio > 0.16f && metrics.averageBrightness < 0.58f) {
+            14f
+        } else {
+            0f
+        }
         val stormProbability = probability(
-            metrics.darkCloudRatio * 112f +
+            metrics.darkCloudRatio * 136f +
                 textureStormBoost +
-                metrics.cloudRatio * 12f +
-                if (rainProbability > 65) 12f else 0f
+                metrics.cloudRatio * 16f +
+                lowCeilingStormBoost +
+                if (rainProbability > 65) 14f else 0f
         ).let { if (metrics.darkCloudRatio < 0.08f) it.coerceAtMost(22) else it }
 
         val sunsetScore = score(
@@ -132,9 +163,9 @@ object SkyAnalyzer {
         )
         val stormScore = score(stormProbability * 0.78f + metrics.darkCloudRatio * 32f)
         val dramaticCloudsScoreRaw = score(
-            metrics.cloudRatio * 68f +
-                metrics.darkCloudRatio * 46f +
-                if (metrics.cloudRatio > 0.18f) metrics.contrast * 58f else 0f
+            metrics.cloudRatio * 70f +
+                metrics.darkCloudRatio * 62f +
+                if (metrics.cloudRatio > 0.18f) metrics.contrast * 64f else 0f
         )
         val dramaticCloudsScore = if (metrics.cloudRatio < 0.18f) {
             dramaticCloudsScoreRaw.coerceAtMost(12)
@@ -180,8 +211,8 @@ object SkyAnalyzer {
         return when {
             metrics.cloudRatio < 0.10f && metrics.skyRatio > 0.14f -> "Cer senin sau aproape senin"
             metrics.cloudRatio < 0.14f -> "Cer predominant senin"
-            metrics.darkCloudRatio > 0.24f && metrics.cloudRatio > 0.42f -> "Cumulonimbus / nori de furtuna"
-            metrics.darkCloudRatio > 0.17f && metrics.cloudRatio > 0.52f -> "Nimbostratus / strat gros de ploaie"
+            metrics.darkCloudRatio > 0.18f && metrics.cloudRatio > 0.38f && metrics.contrast >= 0.12f -> "Cumulonimbus / nori de furtuna"
+            metrics.darkCloudRatio > 0.14f && metrics.cloudRatio > 0.46f -> "Nimbostratus / strat gros de ploaie"
             metrics.cloudRatio > 0.62f && metrics.contrast < 0.16f -> "Altostratus / cer acoperit uniform"
             metrics.cloudRatio > 0.30f && metrics.contrast >= 0.16f -> "Cumulus / nori pufosi cu relief"
             metrics.skyRatio > 0.42f && metrics.cloudRatio in 0.10f..0.35f -> "Cirrus / nori subtiri"
@@ -196,8 +227,8 @@ object SkyAnalyzer {
         metrics: SkyMetrics
     ): String {
         return when {
-            stormProbability >= 70 -> "Cadru foarte dramatic, dar evita zonele expuse si fotografiaza dintr-un loc sigur."
-            rainProbability >= 65 -> "Lumina poate deveni interesanta inainte de ploaie; protejeaza telefonul si cauta reflexii."
+            stormProbability >= 60 -> "Cadru dramatic, cu nori amenintatori; evita zonele expuse si fotografiaza dintr-un loc sigur."
+            rainProbability >= 55 -> "Cerul pare incarcat; protejeaza telefonul si cauta reflexii daca incepe ploaia."
             bestMoment == "Apus" -> "Cauta directia luminii calde si include o silueta pentru profunzime."
             bestMoment == "Ceata" -> "Foloseste subiecte apropiate si contraste simple; atmosfera este punctul forte."
             bestMoment == "Nori dramatici" -> "Subexpune usor cerul ca sa pastrezi textura norilor."

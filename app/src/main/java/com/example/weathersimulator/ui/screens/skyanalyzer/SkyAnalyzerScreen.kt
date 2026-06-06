@@ -114,7 +114,7 @@ fun SkyAnalyzerScreen(
         contract = ActivityResultContracts.TakePicturePreview()
     ) { bitmap ->
         if (bitmap != null) {
-            vm.analyze(bitmap)
+            vm.analyze(bitmap, SkyPhotoSource.Camera)
         }
     }
 
@@ -124,7 +124,7 @@ fun SkyAnalyzerScreen(
         if (uri != null) {
             val bitmap = loadBitmapFromUri(context, uri)
             if (bitmap != null) {
-                vm.analyze(bitmap)
+                vm.analyze(bitmap, SkyPhotoSource.Gallery)
             } else {
                 vm.showImageLoadError()
             }
@@ -190,7 +190,7 @@ fun SkyAnalyzerScreen(
                                 maxLines = 1
                             )
                             Text(
-                                text = "AI local pentru cer și fotografie",
+                                text = "AI pentru cer și fotografie",
                                 color = Color.White.copy(alpha = 0.74f),
                                 fontSize = 14.sp,
                                 maxLines = 1
@@ -273,7 +273,10 @@ fun SkyAnalyzerScreen(
                     SkyDetailsCard(result = result)
                     CloudStructureCard(result = result)
                     PhenomenaCard(result = result)
-                    EvolutionCard(result = result)
+                    EvolutionCard(
+                        result = result,
+                        photoSource = state.photoSource ?: SkyPhotoSource.Camera
+                    )
                     AiObservationCard(
                         result = result,
                         isLoading = state.isGeneratingAiObservation,
@@ -1029,13 +1032,21 @@ private fun SmallPhenomenonChip(
 }
 
 @Composable
-private fun EvolutionCard(result: SkyAnalysisResult) {
-    val items = evolutionItems(result)
+private fun EvolutionCard(
+    result: SkyAnalysisResult,
+    photoSource: SkyPhotoSource
+) {
+    val isGalleryPhoto = photoSource == SkyPhotoSource.Gallery
+    val items = if (isGalleryPhoto) {
+        visualCueItems(result)
+    } else {
+        evolutionItems(result)
+    }
 
     AnalysisCard(
-        title = "Evolutie estimata",
+        title = if (isGalleryPhoto) "Indicii vizuale" else "Evolutie vizuala estimata",
         icon = Icons.Rounded.Bolt,
-        trailing = "Estimare pentru urmatoarele 6 ore"
+        trailing = null
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -1068,6 +1079,14 @@ private fun EvolutionCard(result: SkyAnalysisResult) {
         }
 
         Spacer(Modifier.height(4.dp))
+        if (!isGalleryPhoto) {
+            Text(
+                text = "Estimare orientativa pe baza cerului fotografiat acum. Nu este avertizare meteo oficiala.",
+                color = Color.White.copy(alpha = 0.58f),
+                style = MaterialTheme.typography.labelSmall,
+                maxLines = 2
+            )
+        }
         LinearProgressIndicator(
             progress = { result.rainProbability / 100f },
             modifier = Modifier
@@ -1125,7 +1144,7 @@ private fun AiObservationCard(
 
             if (isLoading) {
                 Text(
-                    text = "llama3.2 formuleaza descrierea norilor...",
+                    text = "AI-ul formuleaza descrierea norilor...",
                     color = Color.White.copy(alpha = 0.76f),
                     style = MaterialTheme.typography.bodyMedium
                 )
@@ -1328,6 +1347,41 @@ private fun evolutionItems(result: SkyAnalysisResult): List<EvolutionUi> {
         EvolutionUi("+3h", threeHours, Icons.Rounded.Cloud, Color.White.copy(alpha = 0.82f)),
         EvolutionUi("+6h", sixHours, Icons.Rounded.Thunderstorm, BlueAccent),
         EvolutionUi("+6h+", storm, Icons.Rounded.Bolt, YellowAccent)
+    )
+}
+
+private fun visualCueItems(result: SkyAnalysisResult): List<EvolutionUi> {
+    return listOf(
+        EvolutionUi(
+            "Cer",
+            (result.metrics.skyRatio * 100f).roundToInt().coerceIn(0, 100),
+            Icons.Rounded.WbSunny,
+            YellowAccent
+        ),
+        EvolutionUi(
+            "Nori",
+            (result.metrics.cloudRatio * 100f).roundToInt().coerceIn(0, 100),
+            Icons.Rounded.Cloud,
+            Color.White.copy(alpha = 0.88f)
+        ),
+        EvolutionUi(
+            "Intun.",
+            (result.metrics.darkCloudRatio * 100f).roundToInt().coerceIn(0, 100),
+            Icons.Rounded.Cloud,
+            Color.White.copy(alpha = 0.70f)
+        ),
+        EvolutionUi(
+            "Ploaie",
+            result.rainProbability,
+            Icons.Rounded.Thunderstorm,
+            BlueAccent
+        ),
+        EvolutionUi(
+            "Furt.",
+            result.stormProbability,
+            Icons.Rounded.Bolt,
+            YellowAccent
+        )
     )
 }
 

@@ -16,14 +16,20 @@ object WeatherWorkScheduler {
 
         WorkManager.getInstance(context).enqueueUniquePeriodicWork(
             "weather_alerts_work",
-            ExistingPeriodicWorkPolicy.UPDATE,
+            ExistingPeriodicWorkPolicy.KEEP,
             request
         )
+
+        runNow(context)
     }
 
     fun runNow(context: Context) {
         val req = OneTimeWorkRequestBuilder<WeatherAlertWorker>().build()
-        WorkManager.getInstance(context).enqueue(req)
+        WorkManager.getInstance(context).enqueueUniqueWork(
+            "weather_alerts_check_now",
+            ExistingWorkPolicy.REPLACE,
+            req
+        )
     }
 
 }

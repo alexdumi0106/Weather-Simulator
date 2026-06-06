@@ -24,7 +24,7 @@ class OllamaAiRepository @Inject constructor() : AiRepository {
             .build()
             .create(OllamaApiService::class.java)
 
-        return api.generate(OllamaRequest(prompt)).response
+        return api.generate(OllamaRequest(prompt)).response.requireUsableOllamaResponse()
     }
 
     override suspend fun generateLocal(prompt: String, serverUrl: String): String {
@@ -42,7 +42,7 @@ class OllamaAiRepository @Inject constructor() : AiRepository {
             .build()
             .create(OllamaApiService::class.java)
 
-        return api.generateLocal(OllamaRequest(prompt)).response
+        return api.generateLocal(OllamaRequest(prompt)).response.requireUsableOllamaResponse()
     }
 
     override suspend fun generateSkyObservation(
@@ -63,7 +63,7 @@ class OllamaAiRepository @Inject constructor() : AiRepository {
             .build()
             .create(OllamaApiService::class.java)
 
-        return api.generateSkyObservation(request).response
+        return api.generateSkyObservation(request).response.requireUsableOllamaResponse()
     }
 
     override suspend fun generateOutfitRecommendation(
@@ -84,7 +84,7 @@ class OllamaAiRepository @Inject constructor() : AiRepository {
             .build()
             .create(OllamaApiService::class.java)
 
-        return api.generateOutfitRecommendation(request).response
+        return api.generateOutfitRecommendation(request).response.requireUsableOllamaResponse()
     }
 
     override suspend fun generateWeatherSimulation(
@@ -105,7 +105,7 @@ class OllamaAiRepository @Inject constructor() : AiRepository {
             .build()
             .create(OllamaApiService::class.java)
 
-        return api.generateWeatherSimulation(request).response
+        return api.generateWeatherSimulation(request).response.requireUsableOllamaResponse()
     }
 
     override suspend fun generateWeatherStory(
@@ -114,7 +114,7 @@ class OllamaAiRepository @Inject constructor() : AiRepository {
     ): String {
         val client = buildClient()
         val api = buildApi(serverUrl, client)
-        return api.generateWeatherStory(request).response
+        return api.generateWeatherStory(request).response.requireUsableOllamaResponse()
     }
 
     override suspend fun generateHistoricalDayDescription(
@@ -123,7 +123,7 @@ class OllamaAiRepository @Inject constructor() : AiRepository {
     ): String {
         val client = buildClient()
         val api = buildApi(serverUrl, client)
-        return api.generateHistoricalDayDescription(request).response
+        return api.generateHistoricalDayDescription(request).response.requireUsableOllamaResponse()
     }
 
     override suspend fun generateClimateComparison(
@@ -132,7 +132,7 @@ class OllamaAiRepository @Inject constructor() : AiRepository {
     ): String {
         val client = buildClient()
         val api = buildApi(serverUrl, client)
-        return api.generateClimateComparison(request).response
+        return api.generateClimateComparison(request).response.requireUsableOllamaResponse()
     }
 
     private fun buildClient(): OkHttpClient {
@@ -152,4 +152,31 @@ class OllamaAiRepository @Inject constructor() : AiRepository {
             .build()
             .create(OllamaApiService::class.java)
     }
+
+    private fun String.requireUsableOllamaResponse(): String {
+        val cleaned = trim()
+
+        if (cleaned.isBlank()) {
+            throw OllamaBackendException("Backend-ul local nu a returnat text.")
+        }
+
+        val lower = cleaned.lowercase()
+        val isBackendError =
+            lower.startsWith("backend error:") ||
+                lower.startsWith("backend local error:") ||
+                lower.contains("llama runner process has terminated") ||
+                lower.contains("unable to allocate cpu buffer") ||
+                lower.contains("status code: 500") ||
+                lower.contains("panic:")
+
+        if (isBackendError) {
+            throw OllamaBackendException(cleaned)
+        }
+
+        return cleaned
+    }
 }
+
+class OllamaBackendException(
+    message: String
+) : Exception(message)

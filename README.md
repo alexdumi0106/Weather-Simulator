@@ -24,7 +24,7 @@ Designed to run efficiently on mobile devices without requiring constant network
 ### Language & Framework
 - Kotlin (Jetpack Compose)
 ### AI Integration
-- LLM-based reasoning module for contextual explanations
+- AI backend for contextual explanations. The backend can use Gemini first and fall back to the local llama3.2 service when Gemini quota/rate limits are reached.
 ### Architecture
 - MVVM with reactive state management
 ### Version Control

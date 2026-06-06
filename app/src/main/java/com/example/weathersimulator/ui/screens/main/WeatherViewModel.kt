@@ -64,9 +64,6 @@ class WeatherViewModel @Inject constructor(
     val archiveCities = weatherRepository.archiveCities
 
     private var lastFetchAtMs: Long = 0L
-    private var lastAlertTitle: String? = null
-    private var lastAlertSentAtMs: Long = 0L
-    private val alertCooldownMs = 3 * 60 * 60 * 1000L // 3 ore
     private var lastFetchLat: Double? = null
     private var lastFetchLon: Double? = null
     private var cachedResponse: com.example.weathersimulator.data.remote.weather.OpenMeteoResponse? = null
@@ -439,25 +436,8 @@ class WeatherViewModel @Inject constructor(
         lastFetchLon = response.longitude
         cachedResponse = response
 
-        val alert = WeatherAlertEvaluator.evaluate(response)
-
-        if (alert != null) {
-            val now = System.currentTimeMillis()
-
-            val isNewAlert = alert.title != lastAlertTitle
-            val cooldownPassed = now - lastAlertSentAtMs >= alertCooldownMs
-
-            if (isNewAlert || cooldownPassed) {
-                WeatherNotifier.show(
-                    application.applicationContext,
-                    alert.title,
-                    alert.message
-                )
-
-                lastAlertTitle = alert.title
-                lastAlertSentAtMs = now
-            }
-        }
+        val alerts = WeatherAlertEvaluator.evaluateMessages(response)
+        WeatherNotifier.showWeatherMessages(application.applicationContext, alerts)
 
         _state.update {
             it.copy(

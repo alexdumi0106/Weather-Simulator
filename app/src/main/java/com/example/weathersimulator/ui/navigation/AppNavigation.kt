@@ -24,9 +24,10 @@ import com.example.weathersimulator.ui.screens.main.WeatherViewModel
 import com.example.weathersimulator.ui.screens.skyanalyzer.SkyAnalyzerScreen
 import com.example.weathersimulator.ui.screens.outfit.OutfitRecommendationScreen
 import com.example.weathersimulator.ui.screens.nature.NatureImpactScreen
-import com.example.weathersimulator.ui.screens.games.CloudCatcherScreen
+import com.example.weathersimulator.ui.screens.games.cloudcatcher.CloudCatcherScreen
 import com.example.weathersimulator.ui.screens.games.WeatherGamesScreen
 import com.example.weathersimulator.ui.screens.games.memory.WeatherMemoryScreen
+import com.example.weathersimulator.ui.screens.quiz.WeatherQuizScreen
 
 
 @Composable
@@ -167,6 +168,14 @@ fun AppNavigation() {
                 NatureImpactScreen(
                     state = state,
                     cityName = state.selectedCityName,
+                    onBack = { navController.popBackStack() }
+                )
+            }
+        }
+
+        composable(Routes.WEATHER_QUIZ) {
+            WeatherSimulatorTheme(darkTheme = false, dynamicColor = false) {
+                WeatherQuizScreen(
                     onBack = { navController.popBackStack() }
                 )
             }

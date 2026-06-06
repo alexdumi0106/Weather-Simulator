@@ -15,7 +15,7 @@ interface OpenMeteoApi {
             "temperature_2m,apparent_temperature,weather_code,is_day,cloud_cover,wind_speed_10m,relative_humidity_2m,pressure_msl,uv_index",
 
         @Query("hourly") hourly: String =
-            "temperature_2m,weather_code,is_day,cloud_cover,wind_speed_10m,wind_gusts_10m,relative_humidity_2m,pressure_msl,precipitation,rain,uv_index",
+            "temperature_2m,weather_code,is_day,cloud_cover,wind_speed_10m,wind_gusts_10m,relative_humidity_2m,pressure_msl,precipitation,rain,snowfall,uv_index",
 
         
         @Query("daily") daily: String =
@@ -32,7 +32,7 @@ interface OpenMeteoApi {
         @Query("longitude") lon: Double,
 
         @Query("hourly") hourly: String =
-            "temperature_2m,relative_humidity_2m,pressure_msl,cloud_cover,wind_speed_10m,wind_gusts_10m,precipitation,rain,weather_code,is_day",
+            "temperature_2m,relative_humidity_2m,pressure_msl,cloud_cover,wind_speed_10m,wind_gusts_10m,precipitation,rain,snowfall,weather_code,is_day",
 
         @Query("daily") daily: String =
             "weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset",
@@ -53,7 +53,7 @@ interface OpenMeteoApi {
         @Query("end_date") endDate: String,
 
         @Query("hourly") hourly: String =
-            "temperature_2m,relative_humidity_2m,surface_pressure,cloud_cover,wind_speed_10m,wind_gusts_10m,precipitation,rain,weather_code,is_day",
+            "temperature_2m,relative_humidity_2m,surface_pressure,cloud_cover,wind_speed_10m,wind_gusts_10m,precipitation,rain,snowfall,weather_code,is_day",
 
         @Query("daily") daily: String =
             "weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset",

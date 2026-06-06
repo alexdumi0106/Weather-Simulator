@@ -4,12 +4,18 @@ import android.graphics.Bitmap
 
 data class SkyAnalyzerUiState(
     val photo: Bitmap? = null,
+    val photoSource: SkyPhotoSource? = null,
     val result: SkyAnalysisResult? = null,
     val isAnalyzing: Boolean = false,
     val isGeneratingAiObservation: Boolean = false,
     val aiObservationError: String? = null,
     val permissionMessage: String? = null
 )
+
+enum class SkyPhotoSource {
+    Camera,
+    Gallery
+}
 
 data class SkyAnalysisResult(
     val cloudType: String,

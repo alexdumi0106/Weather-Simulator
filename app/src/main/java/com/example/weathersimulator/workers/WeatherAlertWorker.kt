@@ -34,10 +34,8 @@ class WeatherAlertWorker(
             val loc = locRepo.getSingleLocation() ?: return Result.success()
             val forecast = weatherRepo.getForecast(loc.latitude, loc.longitude)
 
-            val alert = WeatherAlertEvaluator.evaluate(forecast)
-            if (alert != null) {
-                WeatherNotifier.show(applicationContext, alert.title, alert.message)
-            }
+            val alerts = WeatherAlertEvaluator.evaluateMessages(forecast)
+            WeatherNotifier.showWeatherMessages(applicationContext, alerts)
 
             Result.success()
         } catch (_: Exception) {
